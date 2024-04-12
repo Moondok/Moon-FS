@@ -6,12 +6,14 @@
 #include <fstream>
 #include <iostream>
 #include <BufferManager.h>
+#include <cstring>
 
 class FileSystem
 {
 private:
     /* data */
     SuperBlock superblock;
+    BufferManager br_mgr;
 public:
     FileSystem(/* args */);
 
@@ -19,6 +21,7 @@ public:
 
     void format();      // format the system
 
+    void io_move(const char * src,const char * dst, unsigned int nbyte);// transfer data between user space and buffer
 
     ~FileSystem();
 };

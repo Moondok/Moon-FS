@@ -43,9 +43,35 @@ void FileSystem::format()
         // this stack storing the empty data blocks
     this->superblock.s_nfree=1; // not zero cuz the element at the bottom points to a block
 
+    memset(superblock.s_free,0,sizeof(superblock.s_free));
+
+    for(int i=superblock.s_block_num-1;i>=0;i--)
+    {
+        if(superblock.s_nfree==100)
+        {
+            
+            Buf* bp= br_mgr.Bread(0,i);
+            io_move( (const char*)&superblock.s_nfree,bp->b_addr,sizeof(superblock.s_nfree));
+
+            io_move ((const char *)&superblock.s_free,bp->b_addr+sizeof(superblock),sizeof(superblock.s_free));
+
+            br_mgr.Bwrite(bp);
+
+            superblock.s_nfree=0;
+            memset(superblock.s_free,0,sizeof(superblock.s_free));
+        }
+
+        superblock.s_free[superblock.s_nfree++]=i;
+    }
+
 
 
     return;
+}
+
+void FileSystem::io_move(const char * src, const char * dst, unsigned int nbytes)
+{
+    
 }
 
 FileSystem::FileSystem(/* args */)
