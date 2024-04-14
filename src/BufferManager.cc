@@ -12,6 +12,22 @@ Buf* BufferManager:: Bread(int dev_no,int blk_no)
 
 }
 
+void BufferManager::Brelse(Buf* bp)
+{
+    bp->b_flags=BufFlag::B_DONE;
+
+
+
+    Buf* last =bFreeList.av_back;
+
+    Devtab * dtab=this->get_device_manager()->get_blk_device()->get_devtab();
+
+    last->av_forw=bp;
+    bp->av_back=last;
+    bp->av_forw=nullptr;
+    bFreeList.av_back=bp;
+}
+
 Buf* BufferManager ::get_blk(int dev_no,int blk_no)
 {
     Buf * return_blk=nullptr;
@@ -30,7 +46,54 @@ Buf* BufferManager ::get_blk(int dev_no,int blk_no)
             //TODO: add the case when other user is using this blk
         }
 
+        if(bp->b_dev==dev_no && bp->b_blk_no==blk_no)
+        {
+            return_blk=bp;
+            break;
+        }
+
     }
+
+    if(return_blk!=nullptr)
+        return return_blk;
+
+    // search the bfreelist
+    for(auto bp=bFreeList.av_forw;bp!=nullptr;bp=bp->av_forw)
+    {
+        if(bp->b_flags&BufFlag::B_DELWRI)
+        {
+            bp->av_back->av_back=bp->av_back;
+            bp->av_forw->av_back=bp->av_back;
+
+            bp->b_flags|=BufFlag::B_BUSY;
+            //LINK this buffer blk to the IO list
+            this->get_device_manager()->get_blk_device()->Strategy(bp);
+
+            this->Bwrite(bp);
+
+            // DELETE the signal of delaying writ
+            bp->b_flags&=(!BufFlag::B_DELWRI);
+
+            // after writing, we move the buffer from the i/o list
+            auto d_tab=this->get_device_manager()->get_blk_device()->get_devtab();
+            d_tab->d_actl=d_tab->d_actl->av_back;
+
+            this->Brelse(bp);
+        
+
+        }
+        else // we get it 
+        {
+            return_blk=bp;
+            bp->av_back->av_back=bp->av_back;
+            bp->av_forw->av_back=bp->av_back;
+
+            bp->b_flags=BufFlag::B_BUSY; //lock it
+
+            break;
+        }
+    }
+    return return_blk;
 
 }
 

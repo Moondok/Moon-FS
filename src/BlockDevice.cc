@@ -6,9 +6,17 @@ int BlockDevice:: Strategy (Buf* bp)
     bp->av_forw=nullptr;
 
     if(this->d_tab->d_actf==nullptr)
-        this->d_tab->d_actf=bp;
+    {
+        this->d_tab->d_actf=this->d_tab->d_actl=bp;
+        bp->av_back=nullptr;
+    }
     else 
-        this->d_tab->d_actl->av_forw=bp; // note that av_forw points to the following element in linked list
+    {
+        bp->av_back=this->d_tab->d_actl;
+        this->d_tab->d_actl=bp; // note that av_forw points to the following element in linked list
+    }
+
+    
 
     this->d_tab->d_actl=bp;
 

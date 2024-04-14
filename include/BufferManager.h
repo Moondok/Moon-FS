@@ -31,6 +31,8 @@ public:
 
     Buf * Bread(int dev_no,int blk_no);
 
+    void Brelse(Buf* bp);
+
     DeviceManager * get_device_manager();
 
     void not_avaible(Buf* bp); //pick a blk out of freelist
