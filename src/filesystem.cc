@@ -55,6 +55,9 @@ void FileSystem::format()
 
             io_move ((const char *)&superblock.s_free,bp->b_addr+sizeof(superblock),sizeof(superblock.s_free));
 
+
+            br_mgr.not_avaible(bp);
+            br_mgr.get_device_manager()->get_blk_device()->Strategy(bp);
             br_mgr.Bwrite(bp);
 
             superblock.s_nfree=0;
@@ -64,6 +67,8 @@ void FileSystem::format()
         superblock.s_free[superblock.s_nfree++]=i;
     }
 
+    //copy the superblock to disk
+    std::cout<<sizeof(superblock)<<'\n';
 
 
     return;

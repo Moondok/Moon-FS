@@ -1,5 +1,6 @@
 enum BufFlag
 {
+    B_NONE=0x0,
     B_WRITE=0x1,
     B_READ=0x2,
     B_DONE=0x4, //IO operation over,the data is ready
@@ -16,6 +17,7 @@ enum BufFlag
 class Buf 
 {
 public:
+    int id;
     short b_dev;
     int b_blk_no;
     char * b_addr; //point to the buffer memory it controls

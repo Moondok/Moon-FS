@@ -13,12 +13,15 @@ int BlockDevice:: Strategy (Buf* bp)
     else 
     {
         bp->av_back=this->d_tab->d_actl;
+        bp->av_back->av_forw=bp;
         this->d_tab->d_actl=bp; // note that av_forw points to the following element in linked list
     }
 
     
 
     this->d_tab->d_actl=bp;
+
+    return 0;
 
 
 }

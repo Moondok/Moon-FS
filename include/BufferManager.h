@@ -3,7 +3,8 @@
 
 #include <util.h>
 #include <DeviceManager.h>
-
+#include <fstream>
+#include <iostream>
 
 
 class BufferManager
@@ -14,7 +15,7 @@ private:
 
     Buf m_Buf[NUM_BUFFER];
 
-    unsigned char Buffer [NUM_BUFFER][BUFFER_SIZE];
+    char Buffer [NUM_BUFFER][BUFFER_SIZE];
 
     Buf bFreeList; // the head of available buffer linked list
     
@@ -33,10 +34,13 @@ public:
 
     void Brelse(Buf* bp);
 
+    void Bdwrite(Buf* bp);
+
     DeviceManager * get_device_manager();
 
     void not_avaible(Buf* bp); //pick a blk out of freelist
 
+    void initialize();
 
     BufferManager();
 
