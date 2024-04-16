@@ -7,6 +7,7 @@
 #include <iostream>
 #include <BufferManager.h>
 #include <cstring>
+#include <Inode.h>
 
 class FileSystem
 {
@@ -21,7 +22,13 @@ public:
 
     void format();      // format the system
 
-    void io_move(const char * src,const char * dst, unsigned int nbyte);// transfer data between user space and buffer
+    void io_move(char * src,char * dst, unsigned int nbyte);// transfer data between user space and buffer
+
+    Inode alloc_inode();
+
+    int alloc_blk();
+
+    Inode load_inode(int inode_no);
 
     ~FileSystem();
 };

@@ -16,6 +16,8 @@ extern const int INODE_NUM;
 
 extern const int BLOCK_NUM;
 
+extern const int MAX_NAME_SIZE;
+
 
 
 #endif

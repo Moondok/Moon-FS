@@ -15,3 +15,9 @@ const int INODE_SIZE=64;
 const int INODE_NUM= 8176;
 
 const int BLOCK_NUM= 130048 ; //63.5MB
+
+const int MAX_NAME_SIZE=28; //28 bytes, the name of directory or file
+
+const int DIR_ITEMS_SIZE=32; //file/dir name + no
+
+const int MAX_DIR_NUM= 16; // max : 16 dirs in one blk
