@@ -81,6 +81,30 @@ void FileSystem::format()
         br_mgr.Bwrite(bp);
     }
 
+    Inode root_dir_node=alloc_inode();
+
+    int root_dir_blk=alloc_blk();
+
+    DirItem new_dir_blk[MAX_DIR_NUM];
+    strcpy(new_dir_blk[0].name,".");
+    new_dir_blk[0].inode_no= root_dir_node.i_number;
+
+    // write the block of root dir into disk
+    Buf * bp=br_mgr.Bread(0,root_dir_blk);
+    io_move( (char *)(&new_dir_blk), bp->b_addr,BLOCK_SIZE);
+    br_mgr.not_avaible(bp);
+    br_mgr.get_device_manager()->get_blk_device()->Strategy(bp);
+    br_mgr.Bwrite(bp);
+
+    root_dir_node.i_nlink=1;
+    root_dir_node.i_uid=root_dir_node.i_gid=0;
+    root_dir_node.i_size= sizeof(DirItem);
+    root_dir_node.i_addr[0]=root_dir_blk;
+
+
+
+
+
 
     
     
@@ -127,7 +151,24 @@ Inode FileSystem::alloc_inode()
 
 int FileSystem::alloc_blk()
 {
-    return 0;
+    if(superblock.s_block_free_num<=0)
+    {
+        std::cerr<<"[ERROR]fail to allocate memory resouce.\n";
+        return -1;
+    }
+
+    int re=0;
+    superblock.s_block_free_num-=1;
+
+    re=superblock.s_free[--superblock.s_nfree];
+    if(superblock.s_nfree==0 && superblock.s_block_free_num!=0) // there are more free blks, but the stack will be empty
+    {
+        Buf * bp= br_mgr.Bread(0,superblock.s_free[0]);
+        io_move(bp->b_addr, (char*)(&superblock.s_nfree),sizeof(superblock.s_nfree));
+        io_move(bp->b_addr+sizeof(superblock.s_nfree),(char*)superblock.s_free,sizeof(superblock.s_free));
+    }
+
+    return re;
 }
 
 Inode FileSystem::load_inode(int inode_no)

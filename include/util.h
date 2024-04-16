@@ -18,6 +18,6 @@ extern const int BLOCK_NUM;
 
 extern const int MAX_NAME_SIZE;
 
-
+extern const int MAX_DIR_NUM;
 
 #endif
