@@ -55,11 +55,11 @@ void FileSystem::format()
     {
         if(superblock.s_nfree==100)
         {
-            std::cout<<i<<'\n';
+            //std::cout<<i<<'\n';
             Buf* bp= br_mgr.Bread(0,i);
             io_move( (char*)&superblock.s_nfree,bp->b_addr,sizeof(superblock.s_nfree));
 
-            io_move ((char *)&superblock.s_free,bp->b_addr+sizeof(superblock),sizeof(superblock.s_free));
+            io_move ((char *)&superblock.s_free,bp->b_addr+sizeof(superblock.s_nfree),sizeof(superblock.s_free));
 
 
             br_mgr.not_avaible(bp);
@@ -80,7 +80,7 @@ void FileSystem::format()
     for(int i=0;i<2;i++)
     {
         Buf * bp=br_mgr.Bread(0,i);
-        io_move( (char *)(&superblock+i*BLOCK_SIZE), bp->b_addr,BLOCK_SIZE);
+        io_move( (char *)(&superblock)+i*BLOCK_SIZE, bp->b_addr,BLOCK_SIZE);
 
         br_mgr.not_avaible(bp);
         br_mgr.get_device_manager()->get_blk_device()->Strategy(bp);
@@ -137,7 +137,9 @@ void FileSystem::format()
 
 void FileSystem::io_move(char * src, char * dst, unsigned int nbytes)
 {
-    memcpy(dst,src,nbytes);
+    for(int i=0;i<nbytes;i++)
+        dst[i]=src[i];
+    //memcpy(dst,src,nbytes);
 
     
 }
