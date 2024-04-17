@@ -8,6 +8,10 @@
 #include <BufferManager.h>
 #include <cstring>
 #include <Inode.h>
+#include <ctime>
+#include <string>
+#include <vector>
+#include <sstream>
 
 class FileSystem
 {
@@ -26,9 +30,18 @@ public:
 
     Inode alloc_inode();
 
+    void save_inode(Inode inode);
+
     int alloc_blk();
 
     Inode load_inode(int inode_no);
+
+
+    void create_dir(const char * dir_name,short u_id, short g_id);
+
+
+    std::vector<std::string> split(const std::string & str, char delimiter);
+
 
     ~FileSystem();
 };

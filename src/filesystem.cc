@@ -17,6 +17,12 @@ void FileSystem::format()
 {
     std::cout<<"format the filesystem ...\n";
 
+    auto se=split("./home/test/x",'/');
+    for(int i=0;i<se.size();i++)
+        std::cout<<se.at(i)<<' '<<'\n';
+
+    std::cout<<se[0]<<'\n';
+
     // create the disk file
     std::ofstream o_stream;
     o_stream.open(DISK_FILE_NAME, std::ios::binary);
@@ -49,7 +55,7 @@ void FileSystem::format()
     {
         if(superblock.s_nfree==100)
         {
-            
+            std::cout<<i<<'\n';
             Buf* bp= br_mgr.Bread(0,i);
             io_move( (char*)&superblock.s_nfree,bp->b_addr,sizeof(superblock.s_nfree));
 
@@ -100,6 +106,21 @@ void FileSystem::format()
     root_dir_node.i_uid=root_dir_node.i_gid=0;
     root_dir_node.i_size= sizeof(DirItem);
     root_dir_node.i_addr[0]=root_dir_blk;
+    root_dir_node.i_atime= (unsigned int)(time(NULL));
+    root_dir_node.i_mtime= (unsigned int) (time(NULL));
+
+    save_inode(root_dir_node);
+
+    create_dir("./etc",0,0);
+
+    create_dir("./bin",0,0);
+
+    create_dir("./home",0,0);
+
+    create_dir("./dev",0,0);
+
+    
+
 
 
 
@@ -171,14 +192,31 @@ int FileSystem::alloc_blk()
     return re;
 }
 
+void FileSystem::save_inode(Inode inode)
+{
+    DiskInode d;
+    memcpy(&d, &inode, INODE_SIZE);
+
+
+    int blk_no = inode.i_number/(BLOCK_SIZE/INODE_SIZE)+2 ;
+    Buf * bp=br_mgr.Bread(0,blk_no);
+    io_move( (char *)(&d), bp->b_addr+blk_no*BLOCK_SIZE+ inode.i_number%(BLOCK_SIZE/INODE_SIZE)*INODE_SIZE,BLOCK_SIZE);
+    br_mgr.not_avaible(bp);
+    br_mgr.get_device_manager()->get_blk_device()->Strategy(bp);
+    br_mgr.Bwrite(bp);
+
+
+}
+
 Inode FileSystem::load_inode(int inode_no)
 {
     DiskInode tmp;
-    int blk_no = inode_no/(BLOCK_SIZE/INODE_SIZE) ; // each blk has 8 disk_inode
+    int blk_no = inode_no/(BLOCK_SIZE/INODE_SIZE)+2 ; // each blk has 8 disk_inode
+    std::cout<<"debug load inode"<<' '<<blk_no<<'\n';
 
     Buf* bp=br_mgr.Bread(0,blk_no);
 
-    io_move((char*)&tmp, bp->b_addr+inode_no%(BLOCK_SIZE/INODE_SIZE),INODE_SIZE);
+    io_move((char*)&tmp, bp->b_addr+blk_no*BLOCK_SIZE+ inode_no%(BLOCK_SIZE/INODE_SIZE)*INODE_SIZE,INODE_SIZE);
 
     Inode return_inode;
     return_inode.i_mode=tmp.d_mode;
@@ -198,6 +236,23 @@ Inode FileSystem::load_inode(int inode_no)
 
 
 
+}
+
+void FileSystem::create_dir(const char * dir_name, short u_id,short g_id)
+{
+
+}
+
+std::vector<std::string> FileSystem::split(const std::string & str, char delimiter)
+{
+    std::vector<std::string> substrings;
+    std::stringstream ss(str);
+    std::string token;
+    while (getline(ss, token, delimiter)) 
+    {
+        substrings.push_back(token);
+    }
+    return substrings;
 }
 
 FileSystem::FileSystem(/* args */)
