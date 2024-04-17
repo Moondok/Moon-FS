@@ -18,7 +18,7 @@ public:
     unsigned int i_nlink;
     short i_uid;
     short i_gid;
-    unsigned int  i_size ; // number of valid bytes
+    unsigned int  i_size ; // number of valid bytes in this file
     int i_addr[10];
     unsigned int i_atime;
     unsigned int i_mtime;

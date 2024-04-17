@@ -37,11 +37,12 @@ public:
     Inode load_inode(int inode_no);
 
 
-    void create_dir(const char * dir_name,short u_id, short g_id);
+    void create_dir(const char * dir_name,short u_id, short g_id,int cur_dir_no);
 
 
     std::vector<std::string> split(const std::string & str, char delimiter);
 
+    Inode search(Inode cur_inode, const char *name);
 
     ~FileSystem();
 };

@@ -20,4 +20,6 @@ extern const int MAX_NAME_SIZE;
 
 extern const int MAX_DIR_NUM;
 
+extern const int DIR_ITEMS_SIZE;
+
 #endif

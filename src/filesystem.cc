@@ -109,15 +109,17 @@ void FileSystem::format()
     root_dir_node.i_atime= (unsigned int)(time(NULL));
     root_dir_node.i_mtime= (unsigned int) (time(NULL));
 
+    std::cout<<root_dir_node.i_number<<' '<<root_dir_blk<<'\n';
+
     save_inode(root_dir_node);
 
-    create_dir("./etc",0,0);
+    create_dir("./etc",0,0,0);
 
-    create_dir("./bin",0,0);
+    create_dir("./bin",0,0,0);
 
-    create_dir("./home",0,0);
+    create_dir("./home",0,0,0);
 
-    create_dir("./dev",0,0);
+    create_dir("./dev",0,0,0);
 
     
 
@@ -137,9 +139,9 @@ void FileSystem::format()
 
 void FileSystem::io_move(char * src, char * dst, unsigned int nbytes)
 {
-    for(int i=0;i<nbytes;i++)
-        dst[i]=src[i];
-    //memcpy(dst,src,nbytes);
+    // for(int i=0;i<nbytes;i++)
+    //     dst[i]=src[i];
+    memcpy(dst,src,nbytes);
 
     
 }
@@ -240,8 +242,21 @@ Inode FileSystem::load_inode(int inode_no)
 
 }
 
-void FileSystem::create_dir(const char * dir_name, short u_id,short g_id)
+void FileSystem::create_dir(const char * dir_name, short u_id,short g_id,int cur_dir_no)
 {
+    std::vector<std::string> paths=split(dir_name,'/');
+    std::string last_dir_name=paths.at(paths.size()-1);
+
+    if (last_dir_name.size()>=MAX_NAME_SIZE)
+    {
+        std::cerr<<"the length of new directory is too long.\n";
+        return;
+    }
+
+    Inode cur_dir_node=load_inode(cur_dir_no);
+
+    for(unsigned int i=0;i<paths.size()-1;i++)
+        cur_dir_node=search(cur_dir_node, paths.at(i).data());
 
 }
 
@@ -256,6 +271,22 @@ std::vector<std::string> FileSystem::split(const std::string & str, char delimit
     }
     return substrings;
 }
+
+
+Inode FileSystem:: search (Inode cur_dir_inode, const char * name)
+{
+    if(cur_dir_inode.i_flag & inode_flag::DIR_FILE ==0)
+    {
+        std::cerr<<name<<" is not directory.\n";
+        return Inode();
+    }
+
+    DirItem items[MAX_DIR_NUM];
+
+    
+
+}
+
 
 FileSystem::FileSystem(/* args */)
 {
