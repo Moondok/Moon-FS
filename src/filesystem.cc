@@ -210,6 +210,16 @@ void FileSystem::save_inode(Inode inode)
     br_mgr.Bwrite(bp);
 
 
+    for (auto & node: inode_table)
+    {
+        if(node.i_number==inode.i_number)
+        {
+            node=inode;
+            break;
+        }
+    }
+
+
 }
 
 Inode FileSystem::load_inode(int inode_no)
@@ -283,10 +293,76 @@ void FileSystem::create_dir(const char * dir_name, short u_id,short g_id,int cur
     Inode cur_dir_node=load_inode(cur_dir_no);
 
     for(unsigned int i=0;i<paths.size()-1;i++)
-        cur_dir_node=search(cur_dir_node, paths.at(i).data());
+        cur_dir_node=search(cur_dir_node, paths.at(i).data()); // the father directory of the target one
 
-    
+    if(cur_dir_node.i_flag & inode_flag::DIR_FILE != inode_flag::DIR_FILE)
+    {
+        std::cerr<<"[ERROR]can not create directory in a file.\n";
+        return;
+    }
 
+    //TODO: add the judgement to the permissions
+
+
+    if(cur_dir_node.i_size == (6+128*2 + 128*128*2)*BLOCK_SIZE)
+    {
+        std::cerr<<"[ERROR]the directory is full.\n";
+        return ;
+    }
+    DirItem * dirlist = new DirItem [cur_dir_node.i_size/ DIR_ITEMS_SIZE];
+
+    read_(cur_dir_node,(char*) dirlist, 0, cur_dir_node.i_size);
+
+    for( auto i=0; i<cur_dir_node.i_size; i++)
+    {
+        if( std::string(dirlist[i].name)== last_dir_name)
+        {
+            std::cerr<<"[ERROR]the directory "<<last_dir_name<<" is already existed.\n";
+            return;
+        }
+
+    }
+
+    delete [] dirlist;
+
+
+// CREATE a new inode of newly created directory
+    Inode new_inode = alloc_inode();
+
+    new_inode.i_mode=IALLOC | DIR_FILE;
+
+    new_inode.i_nlink=1;
+    new_inode.i_uid=u_id;
+    new_inode.i_gid=g_id;
+    new_inode.i_size=0;
+
+    new_inode.i_mtime= (unsigned int)(time(NULL));
+    new_inode.i_atime= (unsigned int)(time(NULL));
+
+    save_inode(new_inode);
+
+// write the basic content of the newly created directory to a blk.
+    DirItem new_dir_items[2];
+    strcpy(new_dir_items[0].name, ".");
+    new_dir_items[0].inode_no=new_inode.i_number;
+
+    strcpy(new_dir_items[1].name,"..");
+    new_dir_items[1].inode_no=cur_dir_node.i_number;
+
+    write_(new_inode, (char*)new_dir_items,0, 2*DIR_ITEMS_SIZE);
+
+
+// mend the inode of current directory  and write a new dir item into blk
+    DirItem new_item_ ;
+    strcpy(new_item_.name, last_dir_name.data());
+    new_item_.inode_no=new_inode.i_number;
+
+
+    //cur_dir_node.i_nlink++;
+    write_(cur_dir_node,(char*)&new_item_ , cur_dir_node.i_size, DIR_ITEMS_SIZE);
+    save_inode(cur_dir_node);
+
+    return;
 }
 
 std::vector<std::string> FileSystem::split(const std::string & str, char delimiter)
@@ -568,6 +644,11 @@ void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned i
     
 }
 
+
+void FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned int len)
+{
+    
+}
 
 FileSystem::FileSystem(/* args */)
 {
