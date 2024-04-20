@@ -21,3 +21,5 @@ const int MAX_NAME_SIZE=28; //28 bytes, the name of directory or file
 const int DIR_ITEMS_SIZE=32; //file/dir name + no
 
 const int MAX_DIR_NUM= 16; // max : 16 dirs in one blk
+
+const int INODE_TABLE_SIZE=20;

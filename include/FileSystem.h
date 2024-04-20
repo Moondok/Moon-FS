@@ -19,6 +19,8 @@ private:
     /* data */
     SuperBlock superblock;
     BufferManager br_mgr;
+
+    Inode inode_table[20];
 public:
     FileSystem(/* args */);
 
@@ -43,6 +45,9 @@ public:
     std::vector<std::string> split(const std::string & str, char delimiter);
 
     Inode search(Inode cur_inode, const char *name);
+
+
+    void read_(Inode & inode, char * buf, unsigned int start, unsigned int len);
 
     ~FileSystem();
 };

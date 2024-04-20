@@ -22,4 +22,6 @@ extern const int MAX_DIR_NUM;
 
 extern const int DIR_ITEMS_SIZE;
 
+extern const int INODE_TABLE_SIZE;
+
 #endif

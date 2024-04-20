@@ -24,7 +24,7 @@ public:
     unsigned int i_mtime;
 
     short i_dev;
-    short i_number;
+    short i_number=-1;
 
     unsigned int i_flag;
     unsigned int i_count;
