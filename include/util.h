@@ -24,4 +24,6 @@ extern const int DIR_ITEMS_SIZE;
 
 extern const int INODE_TABLE_SIZE;
 
+extern const int MAX_FILE_SIZE;
+
 #endif

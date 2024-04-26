@@ -23,3 +23,5 @@ const int DIR_ITEMS_SIZE=32; //file/dir name + no
 const int MAX_DIR_NUM= 16; // max : 16 dirs in one blk
 
 const int INODE_TABLE_SIZE=20;
+
+const int MAX_FILE_SIZE= (6+128*2+ 2*128*128)*BLOCK_SIZE;

@@ -459,7 +459,7 @@ void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned i
         {
             Buf * bp= br_mgr.Bread(0,inode.i_addr[i]);
 
-            int _1st_index_blk [BLOCK_SIZE/sizeof(int)]; 
+            int _1st_index_blk [BLOCK_SIZE]; 
             io_move(bp->b_addr,(char*)_1st_index_blk,BLOCK_SIZE);
 
             for(int j=0 ;j<BLOCK_SIZE/sizeof(int); j++)
@@ -485,7 +485,7 @@ void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned i
         {
             Buf* bp=br_mgr.Bread(0,inode.i_addr[i]);
 
-            int _2nd_index_blk1[BLOCK_SIZE/sizeof(int)];
+            int _2nd_index_blk1[BLOCK_SIZE];
             io_move(bp->b_addr,(char*)_2nd_index_blk1, BLOCK_SIZE);
 
             for(int j=0;j<BLOCK_SIZE/sizeof(int);j++)
@@ -527,7 +527,7 @@ void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned i
         {
             Buf * bp= br_mgr.Bread(0,inode.i_addr[i]);
 
-            int _1st_index_blk [BLOCK_SIZE/sizeof(int)]; 
+            int _1st_index_blk [BLOCK_SIZE]; 
             io_move(bp->b_addr,(char*)_1st_index_blk,BLOCK_SIZE);
 
             int start_dir_index1 = (i==start_dir_index)? (start_blk_num-6)%128 : 0;            
@@ -559,7 +559,7 @@ void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned i
         {
             Buf* bp=br_mgr.Bread(0,inode.i_addr[i]);
 
-            int _2nd_index_blk1[BLOCK_SIZE/sizeof(int)];
+            int _2nd_index_blk1[BLOCK_SIZE];
             io_move(bp->b_addr,(char*)_2nd_index_blk1, BLOCK_SIZE);
 
             for(int j=0;j<BLOCK_SIZE/sizeof(int);j++)
@@ -601,7 +601,7 @@ void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned i
         {
             Buf* bp=br_mgr.Bread(0,inode.i_addr[i]);
 
-            int _2nd_index_blk1[BLOCK_SIZE/sizeof(int)];
+            int _2nd_index_blk1[BLOCK_SIZE];
             io_move(bp->b_addr,(char*)_2nd_index_blk1, BLOCK_SIZE);
 
             int start_dir_index1=(i==start_dir_index1)? (start_blk_num-(6+128*2)-(i-start_dir_index1)*128*128)/128: 0; 
@@ -609,7 +609,7 @@ void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned i
             for(int j=start_dir_index1;j<BLOCK_SIZE/sizeof(int);j++)
             {
                 Buf * bp_=br_mgr.Bread(0,_2nd_index_blk1[j]);
-                int _2nd_index_blk2[BLOCK_SIZE/sizeof(int)]; // that's the blk whose content are directories of real files
+                int _2nd_index_blk2[BLOCK_SIZE]; // that's the blk whose content are directories of real files
 
                 io_move(bp_->b_addr,(char*)_2nd_index_blk2,BLOCK_SIZE);
 
@@ -647,6 +647,220 @@ void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned i
 
 void FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned int len)
 {
+
+    if(start>inode.i_size)
+    {
+        std::cerr<<"[ERROR]the start address is larger than the file.\n";
+        return;
+    }
+
+    if(start+len> (6+128*2 + 2* 128 * 128)*BLOCK_SIZE )
+    {
+        len= (6+128*2 + 2* 128 * 128)*BLOCK_SIZE - start;
+    }
+    int start_blk_no= start/BLOCK_SIZE; // logically
+    int cur_blk_no=inode.i_size/BLOCK_SIZE; //logically 
+    int passed_blk_no=start_blk_no;// logical
+
+    int cur_len=0;
+    int cur_start=0;
+    bool tag=false;
+
+    bool is_new_blk=false;
+
+
+    if(start_blk_no< 6)
+    {
+        // handle the situation when 
+        if(inode.i_size==0)
+        {
+            int first_blk_no=alloc_blk();
+            inode.i_addr[0]=first_blk_no;
+        }
+        int start_dir_index= start_blk_no%6;
+
+        for(int i=start_dir_index;i<6 && i<=cur_blk_no ;i++)
+        {
+            Buf* bp=br_mgr.Bread(0,inode.i_addr[i]);
+
+            if(len-cur_len>BLOCK_SIZE)
+            {
+                io_move(buf+cur_start, bp->b_addr,BLOCK_SIZE);
+                cur_start+=BLOCK_SIZE;
+                cur_len+=BLOCK_SIZE;
+                br_mgr.Bdwrite(bp);
+            }
+                
+            else
+            {
+                io_move(buf+cur_start,bp->b_addr,len-cur_len);
+                cur_start+=len-cur_len;
+                cur_len=len;
+                br_mgr.Bdwrite(bp);
+            }
+
+            passed_blk_no+=1;
+            if(passed_blk_no>cur_blk_no)
+                is_new_blk=true;
+
+            if( cur_len==len)
+            {
+                tag=true;
+                break;
+            }
+
+        }
+
+        
+        for(int i=cur_blk_no+1; i< 6 && !tag ; i++)
+        {
+            int new_blk_no= alloc_blk();
+            inode.i_addr[i]=new_blk_no;
+
+            Buf * bp= br_mgr.Bread(0, inode.i_addr[i]);
+            if(len-cur_len>BLOCK_SIZE)
+            {
+                io_move(buf+cur_start, bp->b_addr,BLOCK_SIZE);
+                cur_start+=BLOCK_SIZE;
+                cur_len+=BLOCK_SIZE;
+                br_mgr.Bdwrite(bp);
+            }
+            else
+            {
+                io_move(buf+cur_start,bp->b_addr,len-cur_len);
+                cur_start+=len-cur_len;
+                cur_len=len;
+                br_mgr.Bdwrite(bp);
+            }
+
+            if( cur_len==len)
+            {
+                tag=true;
+                break;
+            }
+
+
+        }
+
+        // 1st index blk
+
+        for(int i=6;i<8 && !tag; i++)
+        {
+            int _1st_index_blk[BLOCK_SIZE];
+
+            if(is_new_blk)
+            {
+                int new_index_blk= alloc_blk();
+                inode.i_addr[i]=new_index_blk;
+            }
+            Buf * _1st_dir_bp=  br_mgr.Bread(0,inode.i_addr[i]);
+
+            io_move(_1st_dir_bp->b_addr,(char*)_1st_index_blk,BLOCK_SIZE);
+
+
+            int _1st_index_start= 0;
+
+            for(int j=_1st_index_start;j<BLOCK_SIZE/sizeof(int);j++)
+            {
+                if(is_new_blk)
+                {
+                    int new_index_blk= alloc_blk();
+                    _1st_index_blk[j]=new_index_blk; //  do not forget to write it back
+                }
+                Buf * bp = br_mgr.Bread(0, _1st_index_blk[j]);
+
+                if(len-cur_len>BLOCK_SIZE)
+                {
+                    io_move(buf+cur_start, bp->b_addr,BLOCK_SIZE);
+                    cur_start+=BLOCK_SIZE;
+                    cur_len+=BLOCK_SIZE;
+                    br_mgr.Bdwrite(bp);
+                }
+                else
+                {
+                    io_move(buf+cur_start,bp->b_addr,len-cur_len);
+                    cur_start+=len-cur_len;
+                    cur_len=len;
+                    br_mgr.Bdwrite(bp);
+                }
+
+                passed_blk_no+=1;
+                if(passed_blk_no>cur_blk_no)
+                    is_new_blk=true;
+
+                if( cur_len==len)
+                {
+                    tag=true;
+                    break;
+                }
+            }
+        
+        }
+    }
+
+    else if(start_blk_no< 6+2 * 128 && !tag)
+    {
+        int inode_dir_index= (start_blk_no-6)/128+6;
+
+        for(int i=inode_dir_index;i<8;i++)
+        {
+            int _1st_index_blk[BLOCK_SIZE];
+
+            if(is_new_blk)
+            {
+                int new_index_blk= alloc_blk();
+                inode.i_addr[i]=new_index_blk;
+            }
+            Buf * _1st_dir_bp=  br_mgr.Bread(0,inode.i_addr[i]);
+
+            io_move(_1st_dir_bp->b_addr,(char*)_1st_index_blk,BLOCK_SIZE);
+
+            int _1st_index_start= (start_blk_no-6)%128;
+
+            _1st_index_start= i==inode_dir_index? _1st_index_start:0;
+
+            for(int j=_1st_index_start;j<BLOCK_SIZE/sizeof(int);j++)
+            {
+                if(is_new_blk)
+                {
+                    int new_index_blk= alloc_blk();
+                    _1st_index_blk[j]=new_index_blk; //  do not forget to write it back
+                }
+                Buf * bp = br_mgr.Bread(0, _1st_index_blk[j]);
+
+                if(len-cur_len>BLOCK_SIZE)
+                {
+                    io_move(buf+cur_start, bp->b_addr,BLOCK_SIZE);
+                    cur_start+=BLOCK_SIZE;
+                    cur_len+=BLOCK_SIZE;
+                    br_mgr.Bdwrite(bp);
+                }
+                else
+                {
+                    io_move(buf+cur_start,bp->b_addr,len-cur_len);
+                    cur_start+=len-cur_len;
+                    cur_len=len;
+                    br_mgr.Bdwrite(bp);
+                }
+
+                passed_blk_no+=1;
+                if(passed_blk_no>cur_blk_no)
+                    is_new_blk=true;
+
+                if( cur_len==len)
+                {
+                    tag=true;
+                    break;
+                }
+            }
+        }
+    }
+
+    else 
+    {
+
+    }
+
     
 }
 
