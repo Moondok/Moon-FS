@@ -32,9 +32,6 @@ void  BufferManager:: Bwrite( Buf * bp)
 
     this->Brelse(bp);
 
-
-
-
 }
 
 void BufferManager::Bdwrite(Buf* bp)
@@ -46,7 +43,9 @@ Buf* BufferManager:: Bread(int dev_no,int blk_no)
 {
     Buf * bp=get_blk(dev_no,blk_no);
 
-    if(bp->b_flags & BufFlag::B_DONE == BufFlag::B_DONE)
+    //std::cout<<(bp->b_flags & BufFlag::B_DONE)<<'\n';
+
+    if((bp->b_flags & BufFlag::B_DONE ) == BufFlag::B_DONE)
     {
         return bp;
     }
@@ -103,7 +102,7 @@ Buf* BufferManager ::get_blk(int dev_no,int blk_no)
 
     Devtab * devtab=this->get_device_manager()->get_blk_device()->get_devtab();
 
-    for(auto bp=devtab->b_forw;bp!=nullptr;bp=bp->b_back)
+    for(auto bp=devtab->b_forw;bp!=nullptr;bp=bp->b_forw)
     {
         if(bp->b_dev!=dev_no || bp->b_blk_no!=blk_no)
             continue;

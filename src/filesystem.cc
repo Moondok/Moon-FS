@@ -15,13 +15,13 @@ void FileSystem::initialize()
 
 void FileSystem::format()
 {
-    std::cout<<"format the filesystem ...\n";
+    // std::cout<<"format the filesystem ...\n";
 
-    auto se=split("./home/test/x",'/');
-    for(int i=0;i<se.size();i++)
-        std::cout<<se.at(i)<<' '<<'\n';
+    // auto se=split("./home/test/x",'/');
+    // for(int i=0;i<se.size();i++)
+    //     std::cout<<se.at(i)<<' '<<'\n';
 
-    std::cout<<se[0]<<'\n';
+    // std::cout<<se[0]<<'\n';
 
     // create the disk file
     std::ofstream o_stream;
@@ -51,8 +51,8 @@ void FileSystem::format()
 
     memset(superblock.s_free,0,sizeof(superblock.s_free));
 
-    for(int i=superblock.s_block_num-1;i>=0;i--)
-    {
+    for(int i=superblock.s_block_num+1024-1;i>=1024;i--) //super block+inode=1024 blks
+     {
         if(superblock.s_nfree==100)
         {
             //std::cout<<i<<'\n';
@@ -79,6 +79,7 @@ void FileSystem::format()
     //write the superblock to the disk
     for(int i=0;i<2;i++)
     {
+        //int blk_no=alloc_blk();
         Buf * bp=br_mgr.Bread(0,i);
         io_move( (char *)(&superblock)+i*BLOCK_SIZE, bp->b_addr,BLOCK_SIZE);
 
@@ -100,7 +101,9 @@ void FileSystem::format()
     io_move( (char *)(&new_dir_blk), bp->b_addr,BLOCK_SIZE);
     br_mgr.not_avaible(bp);
     br_mgr.get_device_manager()->get_blk_device()->Strategy(bp);
-    br_mgr.Bwrite(bp);
+    br_mgr.Bwrite(bp);   // new dir blk has error
+
+    //Buf* bp_=br_mgr.Bread(0,)
 
     root_dir_node.i_nlink=1;
     root_dir_node.i_uid=root_dir_node.i_gid=0;
@@ -204,7 +207,7 @@ void FileSystem::save_inode(Inode inode)
 
     int blk_no = inode.i_number/(BLOCK_SIZE/INODE_SIZE)+2 ;
     Buf * bp=br_mgr.Bread(0,blk_no);
-    io_move( (char *)(&d), bp->b_addr+blk_no*BLOCK_SIZE+ inode.i_number%(BLOCK_SIZE/INODE_SIZE)*INODE_SIZE,BLOCK_SIZE);
+    io_move( (char *)(&d), bp->b_addr+blk_no*BLOCK_SIZE+ inode.i_number%(BLOCK_SIZE/INODE_SIZE)*INODE_SIZE,INODE_SIZE);
     br_mgr.not_avaible(bp);
     br_mgr.get_device_manager()->get_blk_device()->Strategy(bp);
     br_mgr.Bwrite(bp);
@@ -313,7 +316,7 @@ void FileSystem::create_dir(const char * dir_name, short u_id,short g_id,int cur
 
     read_(cur_dir_node,(char*) dirlist, 0, cur_dir_node.i_size);
 
-    for( auto i=0; i<cur_dir_node.i_size; i++)
+    for( auto i=0; i<cur_dir_node.i_size/DIR_ITEMS_SIZE; i++)
     {
         if( std::string(dirlist[i].name)== last_dir_name)
         {
@@ -350,6 +353,10 @@ void FileSystem::create_dir(const char * dir_name, short u_id,short g_id,int cur
     new_dir_items[1].inode_no=cur_dir_node.i_number;
 
     write_(new_inode, (char*)new_dir_items,0, 2*DIR_ITEMS_SIZE);
+
+    save_inode(new_inode);
+
+
 
 
 // mend the inode of current directory  and write a new dir item into blk
@@ -565,7 +572,7 @@ void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned i
             for(int j=0;j<BLOCK_SIZE/sizeof(int);j++)
             {
                 Buf * bp_=br_mgr.Bread(0,_2nd_index_blk1[j]);
-                int _2nd_index_blk2[BLOCK_SIZE/sizeof(int)]; // that's the blk whose content are directories of real files
+                int _2nd_index_blk2[BLOCK_SIZE]; // that's the blk whose content are directories of real files
 
                 io_move(bp_->b_addr,(char*)_2nd_index_blk2,BLOCK_SIZE);
 
@@ -662,11 +669,12 @@ void FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned 
     int cur_blk_no=inode.i_size/BLOCK_SIZE; //logically 
     int passed_blk_no=start_blk_no;// logical
 
-    int cur_len=0;
-    int cur_start=0;
+    int cur_len=0;   // the bytes num we already written 
+    int cur_start=0; //pointer in the buf
     bool tag=false;
 
     bool is_new_blk=false;
+    int start_=start%BLOCK_SIZE; //pointer inside a blk
 
 
     if(start_blk_no< 6)
@@ -683,20 +691,23 @@ void FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned 
         {
             Buf* bp=br_mgr.Bread(0,inode.i_addr[i]);
 
-            if(len-cur_len>BLOCK_SIZE)
+            if(len-cur_len>BLOCK_SIZE-start_)
             {
-                io_move(buf+cur_start, bp->b_addr,BLOCK_SIZE);
-                cur_start+=BLOCK_SIZE;
-                cur_len+=BLOCK_SIZE;
+                //if(i==start_dir_index)
+                io_move(buf+cur_start, bp->b_addr+start_,BLOCK_SIZE-start_);
+                cur_start+=BLOCK_SIZE-start_;
+                cur_len+=BLOCK_SIZE-start_;
                 br_mgr.Bdwrite(bp);
+                start_=0;
             }
                 
             else
             {
-                io_move(buf+cur_start,bp->b_addr,len-cur_len);
+                io_move(buf+cur_start,bp->b_addr+start_,len-cur_len);
                 cur_start+=len-cur_len;
                 cur_len=len;
                 br_mgr.Bdwrite(bp);
+                start_=0;
             }
 
             passed_blk_no+=1;
@@ -858,11 +869,57 @@ void FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned 
 
     else 
     {
-
     }
 
+
+    if(start+len>inode.i_size)
+        inode.i_size=start+len;
     
 }
+
+
+
+/**** some functions used by users*****/
+void FileSystem::list_(int inode_no)
+{
+    // note that the root dir is in the 0 inode
+    int cur_dir_no=inode_no;
+    Inode dir_inode=load_inode(cur_dir_no);
+
+    if(dir_inode.i_flag && inode_flag::DIR_FILE == false)
+        std::cerr<<"[ERROR]must list the files in the directory\n";
+
+    int num_dir=dir_inode.i_size/DIR_ITEMS_SIZE;
+
+    char * buf= new char [dir_inode.i_size];
+
+    read_(dir_inode,buf,0,dir_inode.i_size);
+
+    for(int i=0;i<num_dir;i++)
+    {
+        DirItem dir_item;
+        memcpy((char*)&dir_item,buf+i*DIR_ITEMS_SIZE,DIR_ITEMS_SIZE);
+        std::cout<<dir_item.name<<' ';
+        if((i+1)%7==0)
+            std::cout<<'\n';
+    }
+}
+
+void FileSystem::list(std::string  route)
+{
+    std::vector<std::string> paths=split(route,'/');
+    std::string last_dir_name=paths.at(paths.size()-1);
+
+
+    Inode cur_dir_node=load_inode(0);
+
+    for(unsigned int i=0;i<paths.size();i++)
+        cur_dir_node=search(cur_dir_node, paths.at(i).data()); // the father directory of the target one
+
+    list_(cur_dir_node.i_number);
+}
+
+
 
 FileSystem::FileSystem(/* args */)
 {

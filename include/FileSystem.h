@@ -50,6 +50,16 @@ public:
     void read_(Inode & inode, char * buf, unsigned int start, unsigned int len);
     void write_(Inode &inode, char * buf, unsigned int start, unsigned int len);
 
+
+
+
+    /**** some function used by users*/
+    void list(std::string  route);
+    void list_(int inode_no=0);
+
+
+
+
     ~FileSystem();
 };
 

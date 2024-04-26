@@ -22,6 +22,27 @@ int main()
     }
 
 
+    std::string command, param;
+    while(true)
+    {
+        std::cin>>command;
+        if(command=="exit")
+            break;
+
+        else if(command=="mkdir")
+        {
+            std::cin>>param;
+            fs.create_dir(param.data(),0,0,0);
+        }
+
+        else if(command=="ls")
+        {
+            std::cin>>param;
+            fs.list(param);
+        }
+    }
+
+
 
 
 
