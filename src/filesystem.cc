@@ -204,11 +204,11 @@ void FileSystem::save_inode(Inode inode)
     DiskInode d;
     memcpy(&d, &inode, INODE_SIZE);
 
-    std::cout<<d.d_atime<<'\n';
-    std::cout<<inode.i_atime<<'\n';
+    // std::cout<<d.d_atime<<'\n';
+    // std::cout<<inode.i_atime<<'\n';
 
-    std::cout<<d.d_size<<'\n';
-    std::cout<<inode.i_size<<'\n';
+    //std::cout<<d.d_size<<'\n';
+    std::cout<<"size : "<<inode.i_size<<'\n';
 
 
     int blk_no = inode.i_number/(BLOCK_SIZE/INODE_SIZE)+2 ;
@@ -248,7 +248,8 @@ Inode FileSystem::load_inode(int inode_no)
 
     Buf* bp=br_mgr.Bread(0,blk_no);
 
-    io_move((char*)&tmp, bp->b_addr+blk_no*BLOCK_SIZE+ inode_no%(BLOCK_SIZE/INODE_SIZE)*INODE_SIZE,INODE_SIZE);
+    //io_move((char*)&tmp, bp->b_addr+inode_no%(BLOCK_SIZE/INODE_SIZE)*INODE_SIZE,INODE_SIZE);
+    io_move(bp->b_addr+inode_no%(BLOCK_SIZE/INODE_SIZE)*INODE_SIZE,(char*)&tmp,INODE_SIZE);
 
     Inode return_inode;
     return_inode.i_mode=tmp.d_mode;
@@ -829,7 +830,7 @@ void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned i
 
 void FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned int len)
 {
-
+    std::cout<<inode.i_size<<" "<<start<<" "<<len<<'\n';
     if(start>inode.i_size)
     {
         std::cerr<<"[ERROR]the start address is larger than the file.\n";
@@ -1049,6 +1050,8 @@ void FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned 
 
     if(start+len>inode.i_size)
         inode.i_size=start+len;
+
+    std::cout<<inode.i_size<<" "<<start<<" "<<len<<'\n';
     
 }
 
