@@ -204,6 +204,12 @@ void FileSystem::save_inode(Inode inode)
     DiskInode d;
     memcpy(&d, &inode, INODE_SIZE);
 
+    std::cout<<d.d_atime<<'\n';
+    std::cout<<inode.i_atime<<'\n';
+
+    std::cout<<d.d_size<<'\n';
+    std::cout<<inode.i_size<<'\n';
+
 
     int blk_no = inode.i_number/(BLOCK_SIZE/INODE_SIZE)+2 ;
     Buf * bp=br_mgr.Bread(0,blk_no);
@@ -265,6 +271,7 @@ Inode FileSystem::load_inode(int inode_no)
         {
             inode_table[i]=return_inode;
             tag=true;
+            return inode_table[i];
             break;
         }
     if(!tag)
@@ -274,9 +281,11 @@ Inode FileSystem::load_inode(int inode_no)
         int num_deprecated= rand()%INODE_TABLE_SIZE;
 
         inode_table[num_deprecated]=return_inode;
+
+        return inode_table[num_deprecated];
     }
 
-    return return_inode;
+    
 
 
 
@@ -371,6 +380,172 @@ void FileSystem::create_dir(const char * dir_name, short u_id,short g_id,int cur
 
     return;
 }
+
+
+int  FileSystem:: create_file(const char * file_name, short u_id, short g_id, int cur_dir_no)
+{
+    std::vector<std::string> paths=split(file_name,'/');
+    std::string last_dir_name=paths.at(paths.size()-1);
+
+    if (last_dir_name.size()>=MAX_NAME_SIZE)
+    {
+        std::cerr<<"the length of new file is too long.\n";
+        return -1 ;
+    }
+
+    Inode cur_dir_node=load_inode(cur_dir_no);
+
+    for(unsigned int i=0;i<paths.size()-1;i++)
+        cur_dir_node=search(cur_dir_node, paths.at(i).data()); // the father directory of the target one
+
+    if(cur_dir_node.i_flag & inode_flag::DIR_FILE != inode_flag::DIR_FILE)
+    {
+        std::cerr<<"[ERROR]can not create new file in a file.\n";
+        return -1;
+    }
+
+    // TODO: add the judgement to the permissions
+
+    if(cur_dir_node.i_size == (6+128*2 + 128*128*2)*BLOCK_SIZE)
+    {
+        std::cerr<<"[ERROR]the directory is full.\n";
+        return -1;
+    }
+    DirItem * dirlist = new DirItem [cur_dir_node.i_size/ DIR_ITEMS_SIZE];
+
+    read_(cur_dir_node,(char*) dirlist, 0, cur_dir_node.i_size);
+
+    for( auto i=0; i<cur_dir_node.i_size/DIR_ITEMS_SIZE; i++)
+    {
+        if( std::string(dirlist[i].name)== last_dir_name)
+        {
+            std::cerr<<"[ERROR]the file "<<last_dir_name<<" is already existed.\n";
+            return -1;
+        }
+
+    }
+
+    delete [] dirlist;
+
+    // create a new inode of newly created file
+    Inode new_inode = alloc_inode();
+    new_inode.i_mode =IALLOC;
+
+    new_inode.i_nlink=1;
+    new_inode.i_uid=u_id;
+    new_inode.i_gid=g_id;
+    new_inode.i_size=0;
+
+    new_inode.i_mtime= (unsigned int)(time(NULL));
+    new_inode.i_atime= (unsigned int)(time(NULL));
+
+    save_inode(new_inode);
+
+    // mend the inode of current directory and write a new dir item into blk;
+
+    DirItem new_item_ ;
+    strcpy(new_item_.name, last_dir_name.data());
+    new_item_.inode_no=new_inode.i_number;
+
+
+    //cur_dir_node.i_nlink++;
+    write_(cur_dir_node,(char*)&new_item_ , cur_dir_node.i_size, DIR_ITEMS_SIZE);
+    save_inode(cur_dir_node);
+
+    return new_inode.i_number;
+}
+
+
+File*  FileSystem::open_file(const char* file_name, short u_id, short g_id, int cur_dir_no,int open_mode )
+{
+    std::vector<std::string> paths=split(file_name,'/');
+    std::string last_dir_name=paths.at(paths.size()-1);
+
+    Inode cur_dir_node=load_inode(cur_dir_no);
+
+    for(unsigned int i=0;i<paths.size()-1;i++)
+        cur_dir_node=search(cur_dir_node, paths.at(i).data()); // the father directory of the target one
+
+    if(cur_dir_node.i_flag & inode_flag::DIR_FILE != inode_flag::DIR_FILE)
+    {
+        std::cerr<<"[ERROR]can not open a file in a file.\n";
+        return nullptr;
+    }
+
+    // TODO: add the judgement to the permissions
+
+
+    // check whether it is a brand new file
+
+    bool tag=false;
+    DirItem * dirlist = new DirItem [cur_dir_node.i_size/ DIR_ITEMS_SIZE];
+
+    read_(cur_dir_node,(char*) dirlist, 0, cur_dir_node.i_size);
+
+    for( auto i=0; i<cur_dir_node.i_size/DIR_ITEMS_SIZE; i++)
+    {
+        if( std::string(dirlist[i].name)== last_dir_name )
+        {
+            tag=true;
+            Inode target_node=load_inode(dirlist[i].inode_no);
+
+            if((target_node.i_flag& DIR_FILE)!=0)
+            {
+                std::cerr<<"[ERROR]"<<last_dir_name<<" is a directory rather than file.\n";
+                
+                return nullptr;
+            }
+            else
+            {
+                // we find a target file.
+                File* file_ptr= new File();
+
+                file_ptr->f_count+=1;
+                file_ptr->f_offset=0;
+
+                for(int i=0;i<INODE_TABLE_SIZE;i++)
+                {
+                    if(inode_table[i].i_number==target_node.i_number)
+                    {
+                        file_ptr->f_inode= & inode_table[i];
+                        break;
+                    }
+                }
+
+                file_ptr->f_flag=open_mode;
+
+                return file_ptr;
+
+            }
+            break;
+        }
+
+    }
+
+    if(!tag)// not exists, we need to create the new file
+    {
+        File* file_ptr= new File();
+
+        file_ptr->f_count+=1;
+        file_ptr->f_offset=0;
+
+        int inode_number= create_file(file_name, u_id,g_id, cur_dir_no);
+        for( auto & inode: inode_table)
+        {
+            if (inode.i_number== inode_number)
+            {
+                file_ptr->f_inode= & inode;
+                    break;
+            }
+        }
+        file_ptr->f_flag=open_mode;
+            return file_ptr;
+    }
+
+
+
+}
+
 
 std::vector<std::string> FileSystem::split(const std::string & str, char delimiter)
 {
@@ -902,7 +1077,10 @@ void FileSystem::list_(int inode_no)
         std::cout<<dir_item.name<<' ';
         if((i+1)%7==0)
             std::cout<<'\n';
+
     }
+
+    std::cout<<'\n';
 }
 
 void FileSystem::list(std::string  route)
@@ -923,6 +1101,7 @@ void FileSystem::list(std::string  route)
 
 FileSystem::FileSystem(/* args */)
 {
+
 }
 
 FileSystem::~FileSystem()

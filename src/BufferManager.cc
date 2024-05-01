@@ -11,7 +11,7 @@ void  BufferManager:: Bwrite( Buf * bp)
 
     fout.seekp(std::streampos(bp->b_blk_no)*std::streampos(BUFFER_SIZE),std::ios::beg);
 
-    fout.write(bp->b_addr,BUFFER_SIZE);
+    fout.write((const char*)bp->b_addr,BUFFER_SIZE);
 
     fout.close();
 
@@ -126,7 +126,7 @@ Buf* BufferManager ::get_blk(int dev_no,int blk_no)
         return return_blk;
 
     // search the bfreelist
-    for(auto bp=bFreeList.av_forw;bp!=nullptr;bp=bp->av_forw)
+    for(auto bp=bFreeList.av_forw;bp!=nullptr;bp=bFreeList.av_forw)
     {
         if(bp->b_flags&BufFlag::B_DELWRI)
         {

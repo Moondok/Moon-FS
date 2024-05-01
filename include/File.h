@@ -6,18 +6,28 @@
 class File
 {
 public:
-    Inode * f_inode;
-    unsigned int f_offset;
-    int f_count;
+    enum FileFlags
+    {
+        FREAD = 0x1,  //read
+        FWRITE = 0x2, // write 
+        FPIPE = 0x4// pipe
+    };
+    Inode * f_inode =nullptr;
+    unsigned int f_offset =0 ;
+    int f_count =0;
     int f_flag;
 };
 
 class FileTable
 {
 public:
+
+    static const int NO_FILES=10;
     short u_id;
     short g_id;
-    File* files[10];
+
+    int num_files=0; // valid num of pointers
+    File* files[NO_FILES];
 
     FileTable()
     {

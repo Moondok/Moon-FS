@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <File.h>
 
 class FileSystem
 {
@@ -21,6 +22,8 @@ private:
     BufferManager br_mgr;
 
     Inode inode_table[20];
+
+    FileTable user_file_table[10];
 public:
     FileSystem(/* args */);
 
@@ -41,6 +44,8 @@ public:
 
     void create_dir(const char * dir_name,short u_id, short g_id,int cur_dir_no);
 
+    int create_file(const char* file_name, short u_id, short g_id, int cur_dir_no);
+
 
     std::vector<std::string> split(const std::string & str, char delimiter);
 
@@ -56,6 +61,9 @@ public:
     /**** some function used by users*/
     void list(std::string  route);
     void list_(int inode_no=0);
+
+    
+    File *  open_file(const char* file_name, short u_id, short g_id, int cur_dir_no, int open_mode=File::FileFlags::FREAD);
 
 
 
