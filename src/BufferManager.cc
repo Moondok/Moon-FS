@@ -4,16 +4,26 @@
 void  BufferManager:: Bwrite( Buf * bp)
 {
     std::fstream fout; 
-    fout.open(DISK_FILE_NAME,  std::ios::out| std:: ios:: binary);
+    fout.open(DISK_FILE_NAME,  std::ios::in|std::ios::out| std:: ios:: binary);
 
     if(fout.is_open()==false)
         std::cerr<<"[ERROR]fail to open the disk\n";
 
-    fout.seekp(std::streampos(bp->b_blk_no)*std::streampos(BUFFER_SIZE),std::ios::beg);
+    // save
 
+    fout.seekp(std::streampos(bp->b_blk_no+1)*std::streampos(BUFFER_SIZE),std::ios::beg);
+    char * buf=new char [DISK_SIZE-(bp->b_blk_no+1)*BUFFER_SIZE];
+    fout.read(buf,DISK_SIZE-(bp->b_blk_no+1)*BUFFER_SIZE);
+
+
+    fout.seekp(std::streampos(bp->b_blk_no)*std::streampos(BUFFER_SIZE),std::ios::beg);
     fout.write((const char*)bp->b_addr,BUFFER_SIZE);
+    fout.write(buf,DISK_SIZE-(bp->b_blk_no+1)*BUFFER_SIZE);
+    
 
     fout.close();
+
+    delete [] buf;
 
     // DELETE the signal of delaying writ
     bp->b_flags&=(!BufFlag::B_DELWRI);

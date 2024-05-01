@@ -2,12 +2,25 @@
 #include <FileSystem.h>
 #include<File.h>
 
-int main()
-{
+int main(){
     //catch the command arguments from the client
     /****
      * 
     */
+
+   std::fstream fo;
+   fo.open("test.txt",std::ios::out| std::ios::binary);
+
+   fo.seekp(0,std::ios::beg);
+   fo.write("abcdeabcdeabcdeabcde",sizeof(char)*21);
+   fo.close();
+
+   fo.open("test.txt",std::ios::out| std::ios::binary);
+
+   fo.seekp(10,std::ios::beg);
+   fo.write("1234",5);
+   fo.close();
+
 
    FileSystem fs;
 
@@ -51,15 +64,20 @@ int main()
             std::cin>> param;
 
             int mode;
-            while(std::cin)
-            {
-                char c;
-                std::cin>>c;
-                if(c=='r')
-                    mode|=File::FileFlags::FREAD;
-                else if(c=='w')
-                    mode|=File::FileFlags::FWRITE;
-            }
+            
+            char c;
+            std::cin>>c;
+            if(c=='r')
+                mode|=File::FileFlags::FREAD;
+            else if(c=='w')
+                mode|=File::FileFlags::FWRITE;
+
+            std::cin>>c;
+            if(c=='r')
+                mode|=File::FileFlags::FREAD;
+            else if(c=='w')
+                mode|=File::FileFlags::FWRITE;
+            
 
             ptr = fs.open_file(param.data(),0,0,0,mode);
         }

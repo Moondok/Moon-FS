@@ -213,7 +213,7 @@ void FileSystem::save_inode(Inode inode)
 
     int blk_no = inode.i_number/(BLOCK_SIZE/INODE_SIZE)+2 ;
     Buf * bp=br_mgr.Bread(0,blk_no);
-    io_move( (char *)(&d), bp->b_addr+blk_no*BLOCK_SIZE+ inode.i_number%(BLOCK_SIZE/INODE_SIZE)*INODE_SIZE,INODE_SIZE);
+    io_move( (char *)(&d), bp->b_addr+inode.i_number%(BLOCK_SIZE/INODE_SIZE)*INODE_SIZE,INODE_SIZE);
     br_mgr.not_avaible(bp);
     br_mgr.get_device_manager()->get_blk_device()->Strategy(bp);
     br_mgr.Bwrite(bp);
@@ -398,7 +398,7 @@ int  FileSystem:: create_file(const char * file_name, short u_id, short g_id, in
     for(unsigned int i=0;i<paths.size()-1;i++)
         cur_dir_node=search(cur_dir_node, paths.at(i).data()); // the father directory of the target one
 
-    if(cur_dir_node.i_flag & inode_flag::DIR_FILE != inode_flag::DIR_FILE)
+    if((cur_dir_node.i_flag & inode_flag::DIR_FILE) == inode_flag::DIR_FILE)
     {
         std::cerr<<"[ERROR]can not create new file in a file.\n";
         return -1;
@@ -466,7 +466,7 @@ File*  FileSystem::open_file(const char* file_name, short u_id, short g_id, int 
     for(unsigned int i=0;i<paths.size()-1;i++)
         cur_dir_node=search(cur_dir_node, paths.at(i).data()); // the father directory of the target one
 
-    if(cur_dir_node.i_flag & inode_flag::DIR_FILE != inode_flag::DIR_FILE)
+    if((cur_dir_node.i_flag & inode_flag::DIR_FILE) == inode_flag::DIR_FILE)
     {
         std::cerr<<"[ERROR]can not open a file in a file.\n";
         return nullptr;
