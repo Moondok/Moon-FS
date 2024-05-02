@@ -152,41 +152,75 @@ int main()
                 fin.open("disparity.png",std::ios::in|std::ios::binary);
                 fin.read(buf,num);
                 fin.close();
-
-
-
                 int len=fs.write_( *ptr->f_inode,buf, ptr->f_offset, num);
-
                 ptr->f_offset+=len;
                 delete [] buf;
-
                 fs.seekp(ptr,0,0);
-
-
                 buf =new char[num+1];
                 buf[num]='\0';
-
                 len=fs.read_( *ptr->f_inode,buf, ptr->f_offset, num);
                 ptr->f_offset+=len;
-
                 std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
                 std::fstream fo;
                 fo.open("disparity_test.png",std::ios::out|std::ios::binary);
                 fo.write(buf,num);
                 fo.close();
-
                 delete [] buf;
+            }
+            else if(param=="doc")
+            {
+                fs.create_file("home/photos/disparity.png",0,0,0);
+                ptr = fs.open_file("home/photos/disparity.png",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
+                int num=54810;
+                char *buf =new char[num+1];
+                buf[num]='\0';
 
-
+                std::fstream fin;
+                fin.open("disparity.png",std::ios::in|std::ios::binary);
+                fin.read(buf,num);
+                fin.close();
+                int len=fs.write_( *ptr->f_inode,buf, ptr->f_offset, num);
+                ptr->f_offset+=len;
+                delete [] buf;
+                fs.seekp(ptr,0,0);
+                buf =new char[num+1];
+                buf[num]='\0';
+                len=fs.read_( *ptr->f_inode,buf, ptr->f_offset, num);
+                ptr->f_offset+=len;
+                std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
+                std::fstream fo;
+                fo.open("disparity_test.png",std::ios::out|std::ios::binary);
+                fo.write(buf,num);
+                fo.close();
+                delete [] buf;
 
             }
             else if(param=="readme")
             {
+                fs.create_file("home/texts/readme.txt",0,0,0);
+                ptr = fs.open_file("home/texts/readme.txt",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
+                int num=454;
+                char *buf =new char[num+1];
+                buf[num]='\0';
 
-            }
-            else if(param=="doc")
-            {
-
+                std::fstream fin;
+                fin.open("readme.txt",std::ios::in|std::ios::binary);
+                fin.read(buf,num);
+                fin.close();
+                int len=fs.write_( *ptr->f_inode,buf, ptr->f_offset, num);
+                ptr->f_offset+=len;
+                delete [] buf;
+                fs.seekp(ptr,0,0);
+                buf =new char[num+1];
+                buf[num]='\0';
+                len=fs.read_( *ptr->f_inode,buf, ptr->f_offset, num);
+                ptr->f_offset+=len;
+                std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
+                std::fstream fo;
+                fo.open("readme_test.txt",std::ios::out|std::ios::binary);
+                fo.write(buf,num);
+                fo.close();
+                delete [] buf;
             }
 
         }
