@@ -642,7 +642,7 @@ int FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned in
         {
             Buf * bp= br_mgr.Bread(0,inode.i_addr[i]);
 
-            int _1st_index_blk [BLOCK_SIZE]; 
+            int _1st_index_blk [BLOCK_SIZE/sizeof(int)]; 
             io_move(bp->b_addr,(char*)_1st_index_blk,BLOCK_SIZE);
 
             for(int j=0 ;j<BLOCK_SIZE/sizeof(int); j++)
@@ -653,13 +653,17 @@ int FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned in
                     len_=len-c_len;
 
                 Buf* bp_=br_mgr.Bread(0,_1st_index_blk[j]);
-                io_move(bp->b_addr+start_,buf+c_len,len_);
+                io_move(bp_->b_addr+start_,buf+c_len,len_);
 
                 c_len+=len_;
                 start_=0;
 
-                if(c_len=len)
+                if(c_len==len)
+                {
+                    tag=true;
                     break;
+                }
+                    
 
             }
         }
@@ -690,8 +694,12 @@ int FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned in
                     c_len+=len_;
                     start_=0;
 
-                    if(c_len=len)
+                    if(c_len==len)
+                    {
+                        tag=true;
                         break;
+                    }
+                        
 
                 }
             }
@@ -820,11 +828,6 @@ int FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned in
 
     }
     
-
-
-
-    
-    
 }
 
 
@@ -933,7 +936,7 @@ int FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned i
 
         for(int i=6;i<8 && !tag; i++)
         {
-            int _1st_index_blk[BLOCK_SIZE];
+            int _1st_index_blk[BLOCK_SIZE/sizeof(int)];
 
             if(is_new_blk)
             {
@@ -982,6 +985,7 @@ int FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned i
                 }
             }
             // do not remember to write the index block back.
+            _1st_dir_bp=  br_mgr.Bread(0,inode.i_addr[i]);
             io_move((char*)_1st_index_blk,_1st_dir_bp->b_addr,BLOCK_SIZE);
             br_mgr.Bdwrite(_1st_dir_bp);
         }
