@@ -592,10 +592,10 @@ Inode FileSystem:: search (Inode cur_dir_inode, const char * name)
 }
 
 
-void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned int len)
+int FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned int len)
 {
     if(inode.i_size==0 || len==0)
-        return;
+        return 0;
     if( start + len > inode.i_size)
         len=inode.i_size-start; // do not read too must , just limited in this file
 
@@ -697,7 +697,7 @@ void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned i
             }
         }
 
-
+        return len;
     }
 
     //// start position is within the range of 1st indirect dir (7- 128 *2 blks)
@@ -828,13 +828,13 @@ void FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned i
 }
 
 
-void FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned int len)
+int FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned int len)
 {
     std::cout<<inode.i_size<<" "<<start<<" "<<len<<'\n';
     if(start>inode.i_size)
     {
         std::cerr<<"[ERROR]the start address is larger than the file.\n";
-        return;
+        return 0;
     }
 
     if(start+len> (6+128*2 + 2* 128 * 128)*BLOCK_SIZE )
@@ -981,7 +981,9 @@ void FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned 
                     break;
                 }
             }
-        
+            // do not remember to write the index block back.
+            io_move((char*)_1st_index_blk,_1st_dir_bp->b_addr,BLOCK_SIZE);
+            br_mgr.Bdwrite(_1st_dir_bp);
         }
     }
 
@@ -1052,6 +1054,7 @@ void FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned 
         inode.i_size=start+len;
 
     std::cout<<inode.i_size<<" "<<start<<" "<<len<<'\n';
+    return len;
     
 }
 
@@ -1100,6 +1103,11 @@ void FileSystem::list(std::string  route)
     list_(cur_dir_node.i_number);
 }
 
+void FileSystem::seekp(File * file_ptr, int offset, int base)
+{
+    if(file_ptr!= nullptr)
+        file_ptr->f_offset=base+offset;
+}
 
 
 FileSystem::FileSystem(/* args */)
@@ -1109,5 +1117,15 @@ FileSystem::FileSystem(/* args */)
 
 FileSystem::~FileSystem()
 {
+    // when exit the file system , flush the superblock to filesystem.
+   for(int i=0;i<2;i++)
+    {
+        //int blk_no=alloc_blk();
+        Buf * bp=br_mgr.Bread(0,i);
+        io_move( (char *)(&superblock)+i*BLOCK_SIZE, bp->b_addr,BLOCK_SIZE);
 
+        br_mgr.not_avaible(bp);
+        br_mgr.get_device_manager()->get_blk_device()->Strategy(bp);
+        br_mgr.Bwrite(bp);
+    }
 }

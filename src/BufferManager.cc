@@ -245,6 +245,16 @@ BufferManager::BufferManager()
 
 BufferManager ::~BufferManager()
 {
+    int cnt=0;
+    for(Buf* bp=bFreeList.av_forw; cnt<15;cnt++)
+    {
+        not_avaible(bp);
+        get_device_manager()->get_blk_device()->Strategy(bp);
+        Bwrite(bp);
+
+        // the newly written block will be the last position of queue
+        bp=bFreeList.av_forw;
+    }
     if(m_DeviceManager!=nullptr)
         delete m_DeviceManager;
 }

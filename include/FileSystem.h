@@ -52,8 +52,8 @@ public:
     Inode search(Inode cur_inode, const char *name);
 
 
-    void read_(Inode & inode, char * buf, unsigned int start, unsigned int len);
-    void write_(Inode &inode, char * buf, unsigned int start, unsigned int len);
+    int read_(Inode & inode, char * buf, unsigned int start, unsigned int len);
+    int write_(Inode &inode, char * buf, unsigned int start, unsigned int len);
 
 
 
@@ -66,7 +66,7 @@ public:
     File *  open_file(const char* file_name, short u_id, short g_id, int cur_dir_no, int open_mode=File::FileFlags::FREAD);
 
 
-
+    void seekp(File * file_ptr, int offset, int base);
 
     ~FileSystem();
 };

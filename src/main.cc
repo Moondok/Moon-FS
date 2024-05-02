@@ -1,25 +1,33 @@
 #include <iostream>
 #include <FileSystem.h>
-#include<File.h>
+#include <File.h>
 
-int main(){
+int main()
+{
     //catch the command arguments from the client
-    /****
-     * 
-    */
+    /****/
 
-   std::fstream fo;
-   fo.open("test.txt",std::ios::out| std::ios::binary);
 
-   fo.seekp(0,std::ios::beg);
-   fo.write("abcdeabcdeabcdeabcde",sizeof(char)*21);
-   fo.close();
+    // char *s =new char[81];
 
-   fo.open("test.txt",std::ios::out| std::ios::binary);
+    // char * b=new char[801];
+    // for(int i=0;i<80;i++)
+    // {
+    //     s[i]='1';
+    //     for(int j=2;j<10;j++)
+    //         b[10*i+j]=j+'0';
+    //     b[10*i]=i/10+'0';
+    //     b[10*i+1]=i%10+'0';
+    // }
+    // b[800]='\0';
+    // s[80]='\0';
+    // std::cout<<b;
+    // std::cout<<'\n'<<s;
 
-   fo.seekp(10,std::ios::beg);
-   fo.write("1234",5);
-   fo.close();
+    // delete[] b;
+    // delete [] s;
+
+    
 
 
    FileSystem fs;
@@ -93,7 +101,8 @@ int main(){
             char *buf =new char[num+1];
             buf[num]='\0';
 
-            fs.read_( *ptr->f_inode,buf, ptr->f_offset, num);
+            int len=fs.read_( *ptr->f_inode,buf, ptr->f_offset, num);
+            ptr->f_offset+=len;
 
             std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
             std::cout<<buf<<'\n';
@@ -103,9 +112,7 @@ int main(){
         else if(command=="write")
         {
             std::cin>> param;
-
             std::cout<< "please input number of bytes you want to read:\n";
-
             int num;
             std::cin>>num;
 
@@ -113,12 +120,75 @@ int main(){
             buf[num]='\0';
             std::cin>>buf;
 
-            fs.write_( *ptr->f_inode,buf, ptr->f_offset, num);
+            int len=fs.write_( *ptr->f_inode,buf, ptr->f_offset, num);
 
+            ptr->f_offset+=len;
             std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
             std::cout<<buf<<'\n';
 
             delete [] buf;
+        }
+        else if(command=="seekp")
+        {
+            int offset;
+            std::cin>>offset;
+            int base;
+            std::cin>>base;
+            fs.seekp(ptr,offset,base);
+        }
+
+        else if(command=="test")
+        {
+            std::cin>>param;
+            if(param=="image")
+            {
+                fs.create_file("home/photos/disparity.png",0,0,0);
+                ptr = fs.open_file("home/photos/disparity.png",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
+                int num=54810;
+                char *buf =new char[num+1];
+                buf[num]='\0';
+
+                std::fstream fin;
+                fin.open("disparity.png",std::ios::in|std::ios::binary);
+                fin.read(buf,num);
+                fin.close();
+
+
+
+                int len=fs.write_( *ptr->f_inode,buf, ptr->f_offset, num);
+
+                ptr->f_offset+=len;
+                delete [] buf;
+
+                fs.seekp(ptr,0,0);
+
+
+                buf =new char[num+1];
+                buf[num]='\0';
+
+                len=fs.read_( *ptr->f_inode,buf, ptr->f_offset, num);
+                ptr->f_offset+=len;
+
+                std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
+                std::fstream fo;
+                fo.open("disparity_test.png",std::ios::out|std::ios::binary);
+                fo.write(buf,num);
+                fo.close();
+
+                delete [] buf;
+
+
+
+            }
+            else if(param=="readme")
+            {
+
+            }
+            else if(param=="doc")
+            {
+
+            }
+
         }
 
     }
