@@ -10,16 +10,17 @@ void FileSystem::initialize()
     if(in_stream.is_open()==false)
         format();
 
+    else
+    {
+        //TODO: read the superblock to memory
+    }
+
     return;
 }
 
 void FileSystem::format()
 {
-    // std::cout<<"format the filesystem ...\n";
-
-    // auto se=split("./home/test/x",'/');
-    // for(int i=0;i<se.size();i++)
-    //     std::cout<<se.at(i)<<' '<<'\n';
+    std::cout<<"format the filesystem ...\n";
 
     // std::cout<<se[0]<<'\n';
 
@@ -124,29 +125,23 @@ void FileSystem::format()
 
     create_dir("./dev",0,0,0);
 
-    
+    //write the info of root user into the fs
+    create_file("etc/users.txt",0,0,0);
+
+    File* ptr=open_file("etc/users.txt",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
 
 
+    char * root_info="root-0-0-123456\n";
+    int write_len=write_(*ptr->f_inode,root_info,0,16);
 
-
-
-
-
-    
-    
-
-
+    close_file(ptr);
 
     return;
 }
 
 void FileSystem::io_move(char * src, char * dst, unsigned int nbytes)
 {
-    // for(int i=0;i<nbytes;i++)
-    //     dst[i]=src[i];
     memcpy(dst,src,nbytes);
-
-    
 }
 
 Inode FileSystem::alloc_inode()
@@ -203,9 +198,6 @@ void FileSystem::save_inode(Inode inode)
 {
     DiskInode d;
     memcpy(&d, &inode, INODE_SIZE);
-
-    // std::cout<<d.d_atime<<'\n';
-    // std::cout<<inode.i_atime<<'\n';
 
     //std::cout<<d.d_size<<'\n';
     std::cout<<"size : "<<inode.i_size<<'\n';
@@ -1107,10 +1099,52 @@ void FileSystem::list(std::string  route)
     list_(cur_dir_node.i_number);
 }
 
+int FileSystem::login_(std::string u_name,std::string u_password)
+{
+    int return_value=-1;
+    File * ptr= open_file("etc/users.txt",0,0,0);
+    int size= ptr->f_inode->i_size;
+
+    char * buf= new char[size];
+    read_(*ptr->f_inode,buf,0,size);
+
+    std::string users_data=std::string(buf);
+
+    delete [] buf;
+
+    close_file(ptr);
+
+    std::vector<std::string> users= split(users_data,'\n');
+
+    for(auto u: users)
+    {
+        std::vector<std::string> detailed_info=split(u,'-');
+        std::cout<<"detailed_info size "<<detailed_info.size()<<'\n';
+        if(detailed_info.at(0)==u_name && detailed_info.at(3)==u_password)
+        {
+            return_value=0;
+            break;
+        }
+    }
+
+    return return_value;
+
+}
+
 void FileSystem::seekp(File * file_ptr, int offset, int base)
 {
     if(file_ptr!= nullptr)
         file_ptr->f_offset=base+offset;
+}
+
+void FileSystem::close_file(File * ptr)
+{
+    if(ptr!=nullptr)
+    {
+        if(--ptr->f_count==0)
+            delete ptr;
+    }
+        
 }
 
 

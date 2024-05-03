@@ -59,12 +59,14 @@ public:
 
 
     /**** some function used by users*/
+    int login_(std::string u_name, std::string u_password);
+
     void list(std::string  route);
     void list_(int inode_no=0);
 
     
     File *  open_file(const char* file_name, short u_id, short g_id, int cur_dir_no, int open_mode=File::FileFlags::FREAD);
-
+    void    close_file(File*ptr);
 
     void seekp(File * file_ptr, int offset, int base);
 

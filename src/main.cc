@@ -45,8 +45,33 @@ int main()
 
     File * ptr;
     std::string command, param;
+
     while(true)
     {
+        std::cout<<'\n';
+        std::cout<<"please input user name:";
+        std::string u_name,u_password;
+        std::cin>>u_name;
+
+        std::cout<<"\nplease input password:";
+        std::cin>> u_password;
+
+        int re= fs.login_(u_name, u_password);
+
+        if(re==0)
+        {
+            std::cout<<"login success.\n";
+            break;
+        }
+
+        else 
+            std::cout<<"the user name or password is wrong, please input again.\n";
+    }
+
+
+    while(true)
+    {
+        std::cout<<"Moon-FS:/$ ";
         std::cin>>command;
         if(command=="exit")
             break;
@@ -166,6 +191,8 @@ int main()
                 fo.write(buf,num);
                 fo.close();
                 delete [] buf;
+
+                fs.close_file(ptr);
             }
             else if(param=="doc")
             {
@@ -221,6 +248,8 @@ int main()
                 fo.write(buf,num);
                 fo.close();
                 delete [] buf;
+
+                fs.close_file(ptr);
             }
 
         }
