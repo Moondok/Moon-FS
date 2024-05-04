@@ -196,14 +196,14 @@ int main()
             }
             else if(param=="doc")
             {
-                fs.create_file("home/photos/disparity.png",0,0,0);
-                ptr = fs.open_file("home/photos/disparity.png",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
-                int num=54810;
+                fs.create_file("home/reports/report.pdf",0,0,0);
+                ptr = fs.open_file("home/reports/report.pdf",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
+                int num=6446724;
                 char *buf =new char[num+1];
                 buf[num]='\0';
 
                 std::fstream fin;
-                fin.open("disparity.png",std::ios::in|std::ios::binary);
+                fin.open("report.pdf",std::ios::in|std::ios::binary);
                 fin.read(buf,num);
                 fin.close();
                 int len=fs.write_( *ptr->f_inode,buf, ptr->f_offset, num);
@@ -216,7 +216,7 @@ int main()
                 ptr->f_offset+=len;
                 std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
                 std::fstream fo;
-                fo.open("disparity_test.png",std::ios::out|std::ios::binary);
+                fo.open("report_test.pdf",std::ios::out|std::ios::binary);
                 fo.write(buf,num);
                 fo.close();
                 delete [] buf;
