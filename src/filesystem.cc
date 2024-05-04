@@ -1021,7 +1021,7 @@ int FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned i
                     if(is_new_blk)
                     {
                         int new_index_blk=alloc_blk();
-                        _2nd_index_blk[k]=new_index_blk;
+                        _2nd_index_blk[k]=new_index_blk; /*Collect a new blocK X*/
                     }
                     Buf * bp= br_mgr.Bread(0,_2nd_index_blk[k]);
 

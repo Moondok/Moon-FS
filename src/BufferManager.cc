@@ -11,19 +11,19 @@ void  BufferManager:: Bwrite( Buf * bp)
 
     // save
 
-    fout.seekp(std::streampos(bp->b_blk_no+1)*std::streampos(BUFFER_SIZE),std::ios::beg);
-    char * buf=new char [DISK_SIZE-(bp->b_blk_no+1)*BUFFER_SIZE];
-    fout.read(buf,DISK_SIZE-(bp->b_blk_no+1)*BUFFER_SIZE);
+    // fout.seekp(std::streampos(bp->b_blk_no+1)*std::streampos(BUFFER_SIZE),std::ios::beg);
+    // char * buf=new char [DISK_SIZE-(bp->b_blk_no+1)*BUFFER_SIZE];
+    // fout.read(buf,DISK_SIZE-(bp->b_blk_no+1)*BUFFER_SIZE);
 
 
     fout.seekp(std::streampos(bp->b_blk_no)*std::streampos(BUFFER_SIZE),std::ios::beg);
     fout.write((const char*)bp->b_addr,BUFFER_SIZE);
-    fout.write(buf,DISK_SIZE-(bp->b_blk_no+1)*BUFFER_SIZE);
+    //fout.write(buf,DISK_SIZE-(bp->b_blk_no+1)*BUFFER_SIZE);
     
 
     fout.close();
 
-    delete [] buf;
+    //delete [] buf;
 
     // DELETE the signal of delaying writ
     bp->b_flags&=(!BufFlag::B_DELWRI);
