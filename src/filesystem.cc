@@ -270,8 +270,15 @@ Inode FileSystem::load_inode(int inode_no)
     if(!tag)
     {
         srand((unsigned int)time(NULL));
+        int num_deprecated;
+        while(true)
+        {
+            num_deprecated= rand()%INODE_TABLE_SIZE;
+            if(inode_table[num_deprecated].i_number!=0 && inode_table[num_deprecated].i_number!= usr_cur_dir_inode_no)
+                break;
+        }
+
         
-        int num_deprecated= rand()%INODE_TABLE_SIZE;
 
         inode_table[num_deprecated]=return_inode;
 
@@ -1216,7 +1223,44 @@ int FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned i
     
 }
 
+int FileSystem:: change_directory(const char* dir_name, short u_id, short g_id, int cur_dir_no)
+{
+    std::vector<std::string> paths=split(dir_name,'/');
 
+    Inode cur_dir_node=load_inode(cur_dir_no);
+
+    std::vector<std::string> tmp= usr_cur_dir_names;
+
+    for(unsigned int i=0;i<paths.size();i++)
+    {
+        if(cur_dir_node.i_flag & inode_flag::DIR_FILE != inode_flag::DIR_FILE)
+        {
+            std::cerr<<"[ERROR]can not create directory in a file.\n";
+            break;
+        }
+        cur_dir_node=search(cur_dir_node, paths.at(i).data()); // the father directory of the target one
+        if (paths.at(i)=="..")
+            tmp.pop_back();
+        else if(paths.at(i)==".")
+            ;
+        else
+        {
+            tmp.push_back(paths.at(i));
+        }
+    }
+
+    if(cur_dir_node.i_flag & inode_flag::DIR_FILE != inode_flag::DIR_FILE)
+    {
+        std::cerr<<"[ERROR]can not create directory in a file.\n";
+        return -1;
+    }
+
+    // here we access a new directory
+    std::swap(usr_cur_dir_names,tmp);
+
+    usr_cur_dir_inode_no= cur_dir_node.i_number;
+    return 0;
+}
 
 /**** some functions used by users*****/
 void FileSystem::list_(int inode_no)
@@ -1253,7 +1297,7 @@ void FileSystem::list(std::string  route)
     std::string last_dir_name=paths.at(paths.size()-1);
 
 
-    Inode cur_dir_node=load_inode(0);
+    Inode cur_dir_node=load_inode(usr_cur_dir_inode_no);
 
     for(unsigned int i=0;i<paths.size();i++)
         cur_dir_node=search(cur_dir_node, paths.at(i).data()); // the father directory of the target one
@@ -1307,6 +1351,16 @@ void FileSystem::close_file(File * ptr)
             delete ptr;
     }
         
+}
+
+int FileSystem::get_usr_cur_dir_no()
+{
+    return usr_cur_dir_inode_no;
+}
+
+const std::vector<std::string> & FileSystem:: get_usr_cur_names()
+{
+    return usr_cur_dir_names;
 }
 
 

@@ -57,7 +57,10 @@ Buf* BufferManager:: Bread(int dev_no,int blk_no)
 
     if((bp->b_flags & BufFlag::B_DONE ) == BufFlag::B_DONE)
     {
-        return bp;
+        //return bp;
+        // note that in this branch , the block is not unlinked!
+        reorder_buf(bp);
+        
     }
     else
     {
@@ -82,10 +85,12 @@ Buf* BufferManager:: Bread(int dev_no,int blk_no)
         }
 
         this->Brelse(bp);
-        return bp;
+        //return bp;
 
 
     }
+
+    return bp;
 
 
 }
@@ -127,6 +132,18 @@ Buf* BufferManager ::get_blk(int dev_no,int blk_no)
         if(bp->b_dev==dev_no && bp->b_blk_no==blk_no)
         {
             return_blk=bp;
+
+
+
+            //for LRU:
+            //for each block whose unused time less than target, the unused time +1
+            for (auto bp_ = devtab->b_forw; bp_!=nullptr; bp_=bp_->b_forw)
+            {
+                if(bp_->unused_time<bp->unused_time)
+                    bp_->unused_time++;
+            }
+
+            return_blk->unused_time=0;
             break;
         }
 
@@ -153,6 +170,18 @@ Buf* BufferManager ::get_blk(int dev_no,int blk_no)
             return_blk=bp;
             bp->b_blk_no=blk_no;
             bp->b_dev=dev_no;
+
+
+            //for LRU:
+            for (auto bp_ = devtab->b_forw; bp_!=nullptr; bp_=bp_->b_forw)
+            
+                //if(bp_->unused_time<bp->unused_time)
+                bp_->unused_time++;
+            
+
+            return_blk->unused_time=0;
+
+
             
             not_avaible(bp);
             bp->b_flags=BufFlag::B_BUSY; //lock it
@@ -234,6 +263,21 @@ void BufferManager:: initialize()
     disk_tab->d_actf=nullptr;
     disk_tab->d_actl=nullptr;
 
+}
+
+// note that this function only be invoked when some block is already existed in buffers
+void BufferManager::reorder_buf(Buf* bp)
+{
+    // to achieve computationally cheap, we do not perform sorting algorithm,
+    // we just put the target the buffer block to the end of buffer link, the effect is the same with sorting
+    not_avaible(bp);
+
+    Buf* last =bFreeList.av_back;
+    last->av_forw=bp;
+    bp->av_back=last;
+    bp->av_forw=nullptr;
+    bFreeList.av_back=bp;
+    
 }
 
 BufferManager::BufferManager()

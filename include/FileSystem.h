@@ -23,7 +23,15 @@ private:
 
     Inode inode_table[20];
 
+    
+
+
+
+    /** user data */
+    std::vector<std::string> usr_cur_dir_names;
     FileTable user_file_table[10];
+    int usr_cur_dir_inode_no=0;
+
 public:
     FileSystem(/* args */);
 
@@ -55,9 +63,11 @@ public:
     int read_(Inode & inode, char * buf, unsigned int start, unsigned int len);
     int write_(Inode &inode, char * buf, unsigned int start, unsigned int len);
 
+    int change_directory( const char* file_name, short u_id, short g_id, int cur_dir_no );
 
+    int get_usr_cur_dir_no();
 
-
+    const std::vector<std::string> & get_usr_cur_names();
     /**** some function used by users*/
     int login_(std::string u_name, std::string u_password);
 

@@ -25,6 +25,8 @@ public:
     int b_error;
     int b_resid;
 
+    int unused_time=0;
+
 
     Buf* b_forw; //pointer used in the linked list : all buffer blocks of this device
     Buf* b_back;

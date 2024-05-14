@@ -68,10 +68,17 @@ int main()
             std::cout<<"the user name or password is wrong, please input again.\n";
     }
 
+    auto usr_cur_dir_names_= fs.get_usr_cur_names();
+    auto usr_cur_dir_inode_no= fs.get_usr_cur_dir_no();
+
 
     while(true)
     {
-        std::cout<<"Moon-FS:/$ ";
+        std::cout<<"Moon-FS:";
+        for(auto dir_item : usr_cur_dir_names_)
+            std::cout<<"/"<<dir_item;
+        std::cout<<"$ ";
+
         std::cin>>command;
         if(command=="exit")
             break;
@@ -79,7 +86,7 @@ int main()
         else if(command=="mkdir")
         {
             std::cin>>param;
-            fs.create_dir(param.data(),0,0,0);
+            fs.create_dir(param.data(),0,0,usr_cur_dir_inode_no);
         }
 
         else if(command=="ls")
@@ -90,7 +97,7 @@ int main()
         else if(command=="touch")
         {
             std::cin>>param;
-            fs.create_file(param.data(),0,0,0);
+            fs.create_file(param.data(),0,0,usr_cur_dir_inode_no);
         }
         else if(command=="open")
         {
@@ -112,7 +119,7 @@ int main()
                 mode|=File::FileFlags::FWRITE;
             
 
-            ptr = fs.open_file(param.data(),0,0,0,mode);
+            ptr = fs.open_file(param.data(),0,0,usr_cur_dir_inode_no,mode);
         }
         else if(command=="read")
         {
@@ -160,6 +167,14 @@ int main()
             int base;
             std::cin>>base;
             fs.seekp(ptr,offset,base);
+        }
+
+        else if(command=="cd")
+        {
+            std::cin>>param;
+            fs.change_directory(param.data(),0,0,usr_cur_dir_inode_no);
+            usr_cur_dir_names_= fs.get_usr_cur_names();
+            usr_cur_dir_inode_no= fs.get_usr_cur_dir_no();
         }
 
         else if(command=="test")
@@ -254,6 +269,11 @@ int main()
 
         }
 
+        else
+        {
+            std::cerr<<"Command \""<<command<<"\" is not found.\n";
+            std::cin.clear();
+        }
     }
 
 

@@ -40,6 +40,8 @@ public:
 
     void not_avaible(Buf* bp); //pick a blk out of freelist
 
+    void reorder_buf(Buf* bp); // reorder the buffer linklist according to LRU
+
     void initialize();
 
     BufferManager();
