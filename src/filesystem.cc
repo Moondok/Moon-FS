@@ -1305,6 +1305,11 @@ void FileSystem::list(std::string  route)
     list_(cur_dir_node.i_number);
 }
 
+void FileSystem::check_status(const char* file_name, short u_id, short g_id, int cur_dir_no)
+{
+
+}
+
 int FileSystem::login_(std::string u_name,std::string u_password)
 {
     int return_value=-1;

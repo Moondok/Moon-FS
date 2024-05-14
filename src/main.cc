@@ -177,6 +177,12 @@ int main()
             usr_cur_dir_inode_no= fs.get_usr_cur_dir_no();
         }
 
+        else if(command=="stat")
+        {
+            std::cin>>param;
+            fs.check_status(param.data(),0,0,usr_cur_dir_inode_no);
+        }
+
         else if(command=="test")
         {
             std::cin>>param;

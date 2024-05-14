@@ -74,6 +74,7 @@ public:
     void list(std::string  route);
     void list_(int inode_no=0);
 
+    void check_status(const char* file_name, short u_id, short g_id, int cur_dir_no);
     
     File *  open_file(const char* file_name, short u_id, short g_id, int cur_dir_no, int open_mode=File::FileFlags::FREAD);
     void    close_file(File*ptr);

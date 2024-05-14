@@ -58,7 +58,9 @@ note that the instruction ```test``` is specially designed for testing the syste
 - [x] touch
 - [ ] stat
 - [ ] mv
-- [ ] cd
+- [x] cd
 
+
+## In Progress ...
 
 
