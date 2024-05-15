@@ -18,7 +18,7 @@ class FileSystem
 {
 private:
     /* data */
-    SuperBlock superblock;
+    
     BufferManager br_mgr;
 
     Inode inode_table[20];
@@ -33,7 +33,10 @@ private:
     int usr_cur_dir_inode_no=0;
 
 public:
-    FileSystem(/* args */);
+
+    SuperBlock superblock;
+
+    FileSystem();/* args */
 
     void initialize(); //initialize the filesystem, when the server boots
 
@@ -65,9 +68,20 @@ public:
 
     int change_directory( const char* file_name, short u_id, short g_id, int cur_dir_no );
 
+    int delete_file_(Inode & inode, short u_id, short g_id);
+    int delete_file(const char * file_name,  short u_id, short g_id, int cur_dir_no );
+
+
+    int delete_dir_(Inode & inode, short u_id, short g_id);
+    int delete_dir(const char * dir_name,  short u_id, short g_id, int cur_dir_no );
+
     int get_usr_cur_dir_no();
 
     const std::vector<std::string> & get_usr_cur_names();
+
+    void recycle_inode(int inode_no);
+
+    void recycle_block(int block_no);
     /**** some function used by users*/
     int login_(std::string u_name, std::string u_password);
 

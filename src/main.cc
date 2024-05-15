@@ -183,6 +183,20 @@ int main()
             fs.check_status(param.data(),0,0,usr_cur_dir_inode_no);
         }
 
+        else if (command=="rm")
+        {
+            std::cin>>param;
+            if(param=="-r")
+            {
+                std::string dir_name;
+                std::cin>>dir_name;
+                fs.delete_dir(dir_name.data(),0,0,usr_cur_dir_inode_no);
+            }
+            else
+                fs.delete_file(param.data(),0,0,usr_cur_dir_inode_no);
+                
+        }
+
         else if(command=="test")
         {
             std::cin>>param;
@@ -280,6 +294,10 @@ int main()
             std::cerr<<"Command \""<<command<<"\" is not found.\n";
             std::cin.clear();
         }
+
+        std::cout<<"empty block number is : "<<fs.superblock.s_block_free_num<<" \n";
+        std::cout<<"empty inode number is : "<<fs.superblock.s_inode_free_num<<" \n";
+
     }
 
 
