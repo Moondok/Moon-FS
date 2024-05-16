@@ -138,7 +138,7 @@ int main()
 
             buf[len]='\0';
 
-            std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
+            std::cout<<"the "<<len<<" bytes from the position "<<ptr->f_offset<<" are :\n";
             std::cout<<buf<<'\n';
 
             delete [] buf;
@@ -289,6 +289,23 @@ int main()
                 fs.close_file(ptr);
             }
 
+        }
+
+        else if(command=="mv")
+        {
+            std::cin>>param;
+            if(param=="-r")
+            {
+                std::string src,dst;
+                std::cin>>src>>dst;
+                fs.move(src.data(),dst.data(),0,0,usr_cur_dir_inode_no);
+            }
+            else
+            {
+                std::string dst;
+                std::cin>>dst;
+                fs.move(param.data(),dst.data(),0,0,usr_cur_dir_inode_no);
+            }
         }
 
         else

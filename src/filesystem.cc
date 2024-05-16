@@ -1519,6 +1519,120 @@ int FileSystem:: delete_file(const char * file_name,  short u_id, short g_id, in
 
 }
 
+int FileSystem:: move(const char *src, const char * dst, short u_id, short g_id, int cur_dir_no )
+{
+    std::vector<std::string> src_paths=split(src,'/');
+
+    std::vector<std::string> target_paths=split(dst,'/');
+
+    Inode cur_dir_node=load_inode(usr_cur_dir_inode_no);
+
+    Inode src_dir_node=cur_dir_node;
+    Inode dst_dir_node=cur_dir_node;
+
+
+    for(unsigned int i=0;i<src_paths.size()-1;i++)
+        src_dir_node=search(src_dir_node, src_paths.at(i).data());
+
+    for(unsigned int i=0;i<target_paths.size()-1;i++)
+        dst_dir_node=search(dst_dir_node, target_paths.at(i).data());
+
+
+    int is_rename=(src_paths.size()==target_paths.size());
+    bool special_tag=true; // when this tag is false, we do not need to rename
+
+    Inode tmp=search(dst_dir_node, target_paths.back().data());
+    if((tmp.i_mode& inode_flag::DIR_FILE)!=0)
+    {
+        special_tag=false;
+        is_rename=false;
+        dst_dir_node=tmp; // if target node is a directory , then it is not a rename operation.
+    }
+
+    // here we judge whether this operation is simply renaming the file in  a simple directory
+    
+    for(int i=0;i<src_paths.size()-1 && is_rename;i++)
+    {
+        if(src_paths.at(i)!=target_paths.at(i))
+        {
+            is_rename=false;
+            break;
+        }
+    }
+
+
+
+    DirItem items[MAX_DIR_NUM];
+
+    // read the dir file
+    bool tag=false;
+    Inode target_src_node;
+    read_(src_dir_node, (char*)items, 0, sizeof(items));
+    for(int i=0;i< src_dir_node.i_size/DIR_ITEMS_SIZE && !tag;i++)
+    {
+        if(strcmp(items[i].name, src_paths.at(src_paths.size()-1).data())==0)
+        {
+            target_src_node=load_inode(items[i].inode_no);
+            tag=true;
+
+            // TODO : refine the 'search' function into more than one blk of directories
+            if(!is_rename)
+            {
+                items[i]=items[src_dir_node.i_size/DIR_ITEMS_SIZE -1];
+                src_dir_node.i_size-= DIR_ITEMS_SIZE ;
+                std::cout<<"here";
+                if(src_dir_node.i_size%BLOCK_SIZE==0)
+                {
+                    // 6 block direct index
+                    if(src_dir_node.i_size<=5*BLOCK_SIZE)
+                        recycle_block(src_dir_node.i_addr[src_dir_node.i_size/BLOCK_SIZE]);
+                }
+            }
+            else
+                strcpy(items[i].name, target_paths.at(target_paths.size()-1).data());
+
+            break;
+        }
+    }
+    write_(src_dir_node, (char*)items,0, src_dir_node.i_size);
+    save_inode(src_dir_node);
+    save_inode(target_src_node);
+
+    if(!is_rename)
+    {
+
+        DirItem new_item_ ;
+
+        if(special_tag)
+            strcpy(new_item_.name, target_paths.back().data());
+        else
+            strcpy(new_item_.name, src_paths.back().data());
+        new_item_.inode_no=target_src_node.i_number;
+        //cur_dir_node.i_nlink++;
+        write_(dst_dir_node,(char*)&new_item_ , dst_dir_node.i_size, DIR_ITEMS_SIZE);
+        save_inode(dst_dir_node);
+
+        if((target_src_node.i_mode & inode_flag::DIR_FILE)!=0)
+        {
+            // if the move target is a directory, we need mend the directory itself
+            DirItem new_dir_items[2];
+            strcpy(new_dir_items[0].name, ".");
+            new_dir_items[0].inode_no=target_src_node.i_number;
+
+            strcpy(new_dir_items[1].name,"..");
+            new_dir_items[1].inode_no=dst_dir_node.i_number;
+
+            write_(target_src_node, (char*)new_dir_items,0, 2*DIR_ITEMS_SIZE);
+
+            save_inode(target_src_node);
+        }
+
+    } 
+
+
+
+
+}
 
 int FileSystem:: delete_dir_(Inode & inode, short u_id, short g_id)
 {
