@@ -107,6 +107,7 @@ void FileSystem::format()
     //Buf* bp_=br_mgr.Bread(0,)
 
     root_dir_node.i_nlink=1;
+    root_dir_node.i_mode=inode_flag::DIR_FILE|inode_flag::IALLOC;
     root_dir_node.i_uid=root_dir_node.i_gid=0;
     root_dir_node.i_size= sizeof(DirItem);
     root_dir_node.i_addr[0]=root_dir_blk;
@@ -1307,7 +1308,19 @@ void FileSystem::list(std::string  route)
 
 void FileSystem::check_status(const char* file_name, short u_id, short g_id, int cur_dir_no)
 {
+    std::vector<std::string> paths=split(file_name,'/');
 
+    Inode cur_dir_node=load_inode(cur_dir_no);
+
+    for(unsigned int i=0;i<paths.size();i++)
+        cur_dir_node=search(cur_dir_node, paths.at(i).data());
+
+    std::string file_type=(cur_dir_node.i_mode&inode_flag::DIR_FILE)?"directory":"regular file";
+
+    std::cout<<"  File: "<<paths.back()<<'\n';
+    std::cout<<"  Size: "<<cur_dir_node.i_size<<std::setw(20)<<"Blocks: "<<cur_dir_node.i_size/BLOCK_SIZE<<std::setw(20)<<file_type<<'\n';
+    std::cout<<"Device: "<<"Disk 1"<<std::setw(20)<<"Inode: "<<cur_dir_node.i_number<<'\n';
+    std::cout<<"Access: (0777/rwxrwxrwx)  Uid: (0000/   root)   Gid: (0000/   root)\n";
 }
 
 int FileSystem::login_(std::string u_name,std::string u_password)
