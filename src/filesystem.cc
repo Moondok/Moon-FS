@@ -1462,7 +1462,33 @@ int FileSystem:: delete_file(const char * file_name,  short u_id, short g_id, in
     for(unsigned int i=0;i<paths.size()-1;i++)
         cur_dir_node=search(cur_dir_node, paths.at(i).data());
 
-    auto target_node=search(cur_dir_node,paths.at(paths.size()-1).data());
+
+
+
+    /***copy and mend from 'search' function***/
+    DirItem items[MAX_DIR_NUM];
+
+    // read the dir file
+    bool tag=false;
+    Inode target_node;
+    read_(cur_dir_node, (char*)items, 0, sizeof(items));
+    for(int i=0;i< cur_dir_node.i_size/DIR_ITEMS_SIZE;i++)
+    {
+        if(strcmp(items[i].name, paths.at(paths.size()-1).data())==0)
+        {
+            target_node=load_inode(items[i].inode_no);
+            tag=true;
+
+            // TODO : refine the 'search' function into more than one blk of directories
+            items[i]=items[cur_dir_node.i_size/DIR_ITEMS_SIZE -1];
+            break;
+        }
+
+    }
+    write_(cur_dir_node, (char*)items,0, cur_dir_node.i_size);
+    /***copy and mend from 'search' function***/
+
+    //auto target_node=search(cur_dir_node,paths.at(paths.size()-1).data());
 
     //std::cout<<target_node.i_mode<<"test\n";
     if((target_node.i_mode & inode_flag::DIR_FILE)!=0)
@@ -1641,7 +1667,32 @@ int FileSystem:: delete_dir(const char * dir_name,  short u_id, short g_id, int 
     for(unsigned int i=0;i<paths.size()-1;i++)
         cur_dir_node=search(cur_dir_node, paths.at(i).data());
 
-    auto target_node=search(cur_dir_node,paths.at(paths.size()-1).data());
+
+    /***copy and mend from 'search' function***/
+    DirItem items[MAX_DIR_NUM];
+
+    // read the dir file
+    bool tag=false;
+    Inode target_node;
+    read_(cur_dir_node, (char*)items, 0, sizeof(items));
+    for(int i=0;i< cur_dir_node.i_size/DIR_ITEMS_SIZE;i++)
+    {
+        if(strcmp(items[i].name, paths.at(paths.size()-1).data())==0)
+        {
+            target_node=load_inode(items[i].inode_no);
+            tag=true;
+
+            // TODO : refine the 'search' function into more than one blk of directories
+            items[i]=items[cur_dir_node.i_size/DIR_ITEMS_SIZE -1];
+            break;
+        }
+
+    }
+    write_(cur_dir_node, (char*)items,0, cur_dir_node.i_size);
+    /***copy and mend from 'search' function***/
+
+
+    //auto target_node=search(cur_dir_node,paths.at(paths.size()-1).data());
 
     // //std::cout<<target_node.i_mode<<"test\n";
     // if((target_node.i_mode & inode_flag::DIR_FILE)==0)

@@ -136,6 +136,8 @@ int main()
             int len=fs.read_( *ptr->f_inode,buf, ptr->f_offset, num);
             ptr->f_offset+=len;
 
+            buf[len]='\0';
+
             std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
             std::cout<<buf<<'\n';
 
