@@ -1464,7 +1464,7 @@ int FileSystem:: delete_file(const char * file_name,  short u_id, short g_id, in
 
     auto target_node=search(cur_dir_node,paths.at(paths.size()-1).data());
 
-    std::cout<<target_node.i_mode<<"test\n";
+    //std::cout<<target_node.i_mode<<"test\n";
     if((target_node.i_mode & inode_flag::DIR_FILE)!=0)
     {
         std::cerr<<"this is a directory ,please add parameter \"-r\" .\n";
@@ -1496,12 +1496,179 @@ int FileSystem:: delete_file(const char * file_name,  short u_id, short g_id, in
 
 int FileSystem:: delete_dir_(Inode & inode, short u_id, short g_id)
 {
+    if(inode.i_nlink>1)
+    {
+        inode.i_nlink--;
+        return 0;
+    }
+    
+    int size= inode.i_size;
+
+    int number_blk= size/BLOCK_SIZE;
+
+    if(size%BLOCK_SIZE!=0)
+        number_blk++;
+
+    int num_items = size/DIR_ITEMS_SIZE -2 ; // note that item here includes directory and file
+
+
+    bool tag=false;
+
+    if(size==DIR_ITEMS_SIZE*2) // NO FILE OR directory in this directory
+        tag=true;
+    for(int i=0;i<6 && !tag;i++)
+    {
+        Buf * bp=this->br_mgr.Bread(0,inode.i_addr[i]);
+
+        DirItem items [MAX_DIR_NUM];
+
+        io_move(bp->b_addr, (char*)items, BLOCK_SIZE);
+
+        int j= (i==0)? 2: 0 ; // do not delete '.' && '..'
+        for(j;j< MAX_DIR_NUM && !tag;j++)
+        {
+            Inode item_node= load_inode(items[j].inode_no);
+            if((item_node.i_flag & inode_flag::DIR_FILE)==0)
+            {
+                delete_file_(item_node,u_id,g_id);
+            }
+            else
+                delete_dir_(item_node,u_id,g_id);
+            
+            if(--num_items==0)
+            {
+                tag=true;
+                break;
+            }
+        }
+        number_blk--;
+        recycle_block(inode.i_addr[i]);
+    }
+
+    for(int i=6;i<8&& !tag;i++)
+    {
+        Buf * bp= br_mgr.Bread(0,inode.i_addr[i]);
+
+        int _1st_index_blk [BLOCK_SIZE/sizeof(int)]; 
+        io_move(bp->b_addr,(char*)_1st_index_blk,BLOCK_SIZE);
+
+        for(int j=0 ;j<BLOCK_SIZE/sizeof(int); j++)
+        {
+            Buf* bp_=br_mgr.Bread(0,_1st_index_blk[j]);
+            DirItem items [MAX_DIR_NUM];
+
+            io_move(bp_->b_addr, (char*)items, BLOCK_SIZE);
+           
+            for(int k=0;k< MAX_DIR_NUM && !tag;k++)
+            {
+                Inode item_node= load_inode(items[k].inode_no);
+                if((item_node.i_flag & inode_flag::DIR_FILE)==0)
+                {
+                    delete_file_(item_node,u_id,g_id);
+                }
+                else
+                    delete_dir_(item_node,u_id,g_id);
+
+                if(--num_items==0)
+                {
+                    tag=true;
+                    break;
+                }
+            }
+            number_blk--;
+            recycle_block(_1st_index_blk[j]);
+        }
+        recycle_block(inode.i_addr[i]);
+    }
+
+    for(int i=8;i<10 && !tag ;i++)
+    {
+        Buf* bp=br_mgr.Bread(0,inode.i_addr[i]);
+
+        int _2nd_index_blk1[BLOCK_SIZE/sizeof(int)];
+        io_move(bp->b_addr,(char*)_2nd_index_blk1, BLOCK_SIZE);
+
+        for(int j=0;j<BLOCK_SIZE/sizeof(int) && !tag ;j++)
+        {
+            Buf * bp_=br_mgr.Bread(0,_2nd_index_blk1[j]);
+            int _2nd_index_blk2[BLOCK_SIZE/sizeof(int)]; // that's the blk whose content are directories of real files
+
+            io_move(bp_->b_addr,(char*)_2nd_index_blk2,BLOCK_SIZE);
+
+            for(int k=0;k< BLOCK_SIZE/sizeof(int);k++)
+            {
+                Buf* bp_content=br_mgr.Bread(0,_2nd_index_blk2[k]);
+
+                DirItem items [MAX_DIR_NUM];
+
+                io_move(bp_content->b_addr, (char*)items, BLOCK_SIZE);
+
+                for(int ikun=0;ikun< MAX_DIR_NUM && !tag;ikun++)
+                {
+                    Inode item_node= load_inode(items[ikun].inode_no);
+                    if((item_node.i_flag & inode_flag::DIR_FILE)==0)
+                    {
+                        delete_file_(item_node,u_id,g_id);
+                    }
+                    else
+                        delete_dir_(item_node,u_id,g_id);
+
+                    if(--num_items==0)
+                    {
+                        tag=true;
+                        break;
+                    }
+                }
+                number_blk--;
+                recycle_block(_2nd_index_blk2[k]);                 
+            }
+            recycle_block(_2nd_index_blk1[j]);
+        }
+        recycle_block(inode.i_addr[i]);
+    }
+
+    recycle_inode(inode.i_number);
+
     return 0;
 }
 
 int FileSystem:: delete_dir(const char * dir_name,  short u_id, short g_id, int cur_dir_no)
 {
-    return 0;
+    std::vector<std::string> paths=split(dir_name,'/');
+
+    Inode cur_dir_node=load_inode(usr_cur_dir_inode_no);
+
+    for(unsigned int i=0;i<paths.size()-1;i++)
+        cur_dir_node=search(cur_dir_node, paths.at(i).data());
+
+    auto target_node=search(cur_dir_node,paths.at(paths.size()-1).data());
+
+    // //std::cout<<target_node.i_mode<<"test\n";
+    // if((target_node.i_mode & inode_flag::DIR_FILE)==0)
+    // {
+    //     std::cerr<<"this is a directory ,please add parameter \"-r\" .\n";
+    //     return -1;
+    // }
+
+    // delete this item in the father directory "cur_dir_node"
+    cur_dir_node.i_size-= DIR_ITEMS_SIZE ;
+    save_inode(cur_dir_node);
+
+    // if we the left size of directory is some times of BLOCK_SIZE, we need to recycle at least a block
+    if(cur_dir_node.i_size%BLOCK_SIZE==0)
+    {
+        // 6 block direct index
+        if(cur_dir_node.i_size<=5*BLOCK_SIZE)
+            recycle_block(cur_dir_node.i_addr[cur_dir_node.i_size/BLOCK_SIZE]);
+
+        //else if(cur_dir_node.i_size<= 5)
+
+        //TODO: add the circumstances of 1st and 2nd index level
+    }
+
+
+    int re=delete_dir_(target_node,u_id,g_id);
+    return re;
 }
 
 void FileSystem:: recycle_inode(int inode_no)
