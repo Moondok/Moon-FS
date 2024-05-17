@@ -43,9 +43,9 @@ int main()
         fs.format();
     }
 
-    File * ptr;
     std::string command, param;
 
+    std::cout<<" ***** WELCOME TO USE MOON-FS! ***** \n";
     while(true)
     {
         std::cout<<'\n';
@@ -119,11 +119,18 @@ int main()
                 mode|=File::FileFlags::FWRITE;
             
 
-            ptr = fs.open_file(param.data(),0,0,usr_cur_dir_inode_no,mode);
+            int file_no = fs.open_file(param.data(),0,0,usr_cur_dir_inode_no,mode);
+
+            std::cout<<"the file "<<param<<" has been opened, the file pointer number is : "<<file_no<<'\n';
         }
         else if(command=="read")
         {
-            std::cin>> param;
+            //std::cin>> param;
+
+            int file_pointer_no;
+            std::cin>> file_pointer_no;
+
+            File * ptr= fs.user_file_table[0].files[file_pointer_no];
 
             std::cout<< "please input number of bytes you want to read:\n";
 
@@ -145,8 +152,14 @@ int main()
         }
         else if(command=="write")
         {
-            std::cin>> param;
-            std::cout<< "please input number of bytes you want to read:\n";
+            //std::cin>> param;
+
+            int file_pointer_no;
+            std::cin>> file_pointer_no;
+
+            File * ptr= fs.user_file_table[0].files[file_pointer_no];
+
+            std::cout<< "please input number of bytes you want to write:\n";
             int num;
             std::cin>>num;
 
@@ -164,11 +177,22 @@ int main()
         }
         else if(command=="seekp")
         {
+            int file_pointer_no;
+            std::cin>> file_pointer_no;
+            File * ptr= fs.user_file_table[0].files[file_pointer_no];
+
             int offset;
             std::cin>>offset;
             int base;
             std::cin>>base;
             fs.seekp(ptr,offset,base);
+        }
+
+        else if(command=="close")
+        {
+            int file_pointer_no;
+            std::cin>> file_pointer_no;
+            fs.close_file(file_pointer_no);
         }
 
         else if(command=="cd")
@@ -205,7 +229,9 @@ int main()
             if(param=="image")
             {
                 fs.create_file("home/photos/disparity.png",0,0,0);
-                ptr = fs.open_file("home/photos/disparity.png",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
+                int file_no = fs.open_file("home/photos/disparity.png",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
+                File * ptr= fs.user_file_table[0].files[file_no];
+                
                 int num=54810;
                 char *buf =new char[num+1];
                 buf[num]='\0';
@@ -229,15 +255,17 @@ int main()
                 fo.close();
                 delete [] buf;
 
-                fs.close_file(ptr);
+                fs.close_file(file_no);
             }
             else if(param=="doc")
             {
                 fs.create_file("home/reports/report.pdf",0,0,0);
-                ptr = fs.open_file("home/reports/report.pdf",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
+                int file_no = fs.open_file("home/reports/report.pdf",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
                 int num=6446724;
                 char *buf =new char[num+1];
                 buf[num]='\0';
+
+                File * ptr= fs.user_file_table[0].files[file_no];
 
                 std::fstream fin;
                 fin.open("report.pdf",std::ios::in|std::ios::binary);
@@ -258,14 +286,18 @@ int main()
                 fo.close();
                 delete [] buf;
 
+                fs.close_file(file_no);
+
             }
             else if(param=="readme")
             {
                 fs.create_file("home/texts/readme.txt",0,0,0);
-                ptr = fs.open_file("home/texts/readme.txt",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
+                int file_no = fs.open_file("home/texts/readme.txt",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
                 int num=454;
                 char *buf =new char[num+1];
                 buf[num]='\0';
+
+                File * ptr= fs.user_file_table[0].files[file_no];
 
                 std::fstream fin;
                 fin.open("readme.txt",std::ios::in|std::ios::binary);
@@ -286,7 +318,7 @@ int main()
                 fo.close();
                 delete [] buf;
 
-                fs.close_file(ptr);
+                fs.close_file(file_no);
             }
 
         }

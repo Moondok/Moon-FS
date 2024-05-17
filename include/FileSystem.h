@@ -30,11 +30,11 @@ private:
 
     /** user data */
     std::vector<std::string> usr_cur_dir_names;
-    FileTable user_file_table[10];
+    
     int usr_cur_dir_inode_no=0;
 
 public:
-
+    FileTable user_file_table[10];
     SuperBlock superblock;
 
     FileSystem();/* args */
@@ -93,8 +93,8 @@ public:
 
     void check_status(const char* file_name, short u_id, short g_id, int cur_dir_no);
     
-    File *  open_file(const char* file_name, short u_id, short g_id, int cur_dir_no, int open_mode=File::FileFlags::FREAD);
-    void    close_file(File*ptr);
+    int  open_file(const char* file_name, short u_id, short g_id, int cur_dir_no, int open_mode=File::FileFlags::FREAD);
+    void    close_file(int file_no);
 
     void seekp(File * file_ptr, int offset, int base);
 

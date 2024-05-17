@@ -114,7 +114,7 @@ void FileSystem::format()
     root_dir_node.i_atime= (unsigned int)(time(NULL));
     root_dir_node.i_mtime= (unsigned int) (time(NULL));
 
-    std::cout<<root_dir_node.i_number<<' '<<root_dir_blk<<'\n';
+    //std::cout<<root_dir_node.i_number<<' '<<root_dir_blk<<'\n';
 
     save_inode(root_dir_node);
 
@@ -129,13 +129,13 @@ void FileSystem::format()
     //write the info of root user into the fs
     create_file("etc/users.txt",0,0,0);
 
-    File* ptr=open_file("etc/users.txt",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
+    int file_no=open_file("etc/users.txt",0,0,0,File::FileFlags::FWRITE|File::FileFlags::FREAD);
 
 
     char * root_info="root-0-0-123456\n";
-    int write_len=write_(*ptr->f_inode,root_info,0,16);
+    int write_len=write_(*user_file_table[0].files[file_no]->f_inode,root_info,0,16);
 
-    close_file(ptr);
+    close_file(file_no);
 
     return;
 }
@@ -201,7 +201,7 @@ void FileSystem::save_inode(Inode inode)
     memcpy(&d, &inode, INODE_SIZE);
 
     //std::cout<<d.d_size<<'\n';
-    std::cout<<"size : "<<inode.i_size<<'\n';
+    //std::cout<<"size : "<<inode.i_size<<'\n';
 
 
     int blk_no = inode.i_number/(BLOCK_SIZE/INODE_SIZE)+2 ;
@@ -237,7 +237,7 @@ Inode FileSystem::load_inode(int inode_no)
 
     DiskInode tmp;
     int blk_no = inode_no/(BLOCK_SIZE/INODE_SIZE)+2 ; // each blk has 8 disk_inode
-    std::cout<<"debug load inode"<<' '<<blk_no<<'\n';
+    //std::cout<<"debug load inode"<<' '<<blk_no<<'\n';
 
     Buf* bp=br_mgr.Bread(0,blk_no);
 
@@ -457,7 +457,7 @@ int  FileSystem:: create_file(const char * file_name, short u_id, short g_id, in
 }
 
 
-File*  FileSystem::open_file(const char* file_name, short u_id, short g_id, int cur_dir_no,int open_mode )
+int  FileSystem::open_file(const char* file_name, short u_id, short g_id, int cur_dir_no,int open_mode )
 {
     std::vector<std::string> paths=split(file_name,'/');
     std::string last_dir_name=paths.at(paths.size()-1);
@@ -470,7 +470,7 @@ File*  FileSystem::open_file(const char* file_name, short u_id, short g_id, int 
     if((cur_dir_node.i_flag & inode_flag::DIR_FILE) == inode_flag::DIR_FILE)
     {
         std::cerr<<"[ERROR]can not open a file in a file.\n";
-        return nullptr;
+        return -1;
     }
 
     // TODO: add the judgement to the permissions
@@ -483,6 +483,8 @@ File*  FileSystem::open_file(const char* file_name, short u_id, short g_id, int 
 
     read_(cur_dir_node,(char*) dirlist, 0, cur_dir_node.i_size);
 
+    int file_table_position=-1;
+
     for( auto i=0; i<cur_dir_node.i_size/DIR_ITEMS_SIZE; i++)
     {
         if( std::string(dirlist[i].name)== last_dir_name )
@@ -494,32 +496,63 @@ File*  FileSystem::open_file(const char* file_name, short u_id, short g_id, int 
             {
                 std::cerr<<"[ERROR]"<<last_dir_name<<" is a directory rather than file.\n";
                 
-                return nullptr;
+                return -1;
             }
             else
             {
+                File* file_ptr;
+                bool is_exist=false; //whether the file pointer exists
+                
                 // we find a target file.
-                File* file_ptr= new File();
-
-                file_ptr->f_count+=1;
-                file_ptr->f_offset=0;
-
-                for(int i=0;i<INODE_TABLE_SIZE;i++)
+                // firstly we need to check whether this file is already opened
+                for(int i=0;i<FileTable::NO_FILES;i++)
                 {
-                    if(inode_table[i].i_number==target_node.i_number)
+                    if(user_file_table[0].files[i]!=nullptr && user_file_table[0].files[i]->f_inode->i_number==target_node.i_number)
                     {
-                        file_ptr->f_inode= & inode_table[i];
-                        break;
+                        file_ptr=user_file_table[0].files[i];
+                        file_ptr->f_count++;
+                        is_exist=true;
+                        file_table_position=i;
+                    }    
+
+                }
+
+                if(!is_exist)
+                {
+                    file_ptr= new File();
+
+                    file_ptr->f_count+=1;
+                    file_ptr->f_offset=0;
+
+                    for(int i=0;i<INODE_TABLE_SIZE;i++)
+                    {
+                        if(inode_table[i].i_number==target_node.i_number)
+                        {
+                            file_ptr->f_inode= & inode_table[i];
+                            break;
+                        }
+                    }
+
+                    file_ptr->f_flag=open_mode;
+
+
+                    for(int i=0;i<FileTable::NO_FILES;i++)
+                    {
+                        if(user_file_table[0].files[i]==nullptr)
+                        {
+                            user_file_table[0].files[i]=file_ptr;
+                            file_table_position=i;
+                            break;
+                        }    
                     }
                 }
 
-                file_ptr->f_flag=open_mode;
-
-                return file_ptr;
+                return file_table_position;
 
             }
             break;
         }
+        
 
     }
 
@@ -540,10 +573,18 @@ File*  FileSystem::open_file(const char* file_name, short u_id, short g_id, int 
             }
         }
         file_ptr->f_flag=open_mode;
-            return file_ptr;
+
+        for(int i=0;i<FileTable::NO_FILES;i++)
+        {
+            if(user_file_table[0].files[i]==nullptr)
+            {
+                user_file_table[0].files[i]=file_ptr;
+                file_table_position=i;
+                break;
+            }    
+        }
+        return file_table_position;
     }
-
-
 
 }
 
@@ -836,7 +877,7 @@ int FileSystem::read_(Inode & inode, char * buf, unsigned int start, unsigned in
 
 int FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned int len)
 {
-    std::cout<<inode.i_size<<" "<<start<<" "<<len<<'\n';
+    //std::cout<<inode.i_size<<" "<<start<<" "<<len<<'\n';
     if(start>inode.i_size)
     {
         std::cerr<<"[ERROR]the start address is larger than the file.\n";
@@ -995,7 +1036,7 @@ int FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned i
 
         for(int i= 8; i<10 && !tag ; i++)
         {
-            std::cout<<"i:"<<i<<'\n';
+            //std::cout<<"i:"<<i<<'\n';
             int _1st_index_blk[BLOCK_SIZE/sizeof(int)];
 
             if(is_new_blk)
@@ -1219,7 +1260,7 @@ int FileSystem:: write_(Inode &inode, char * buf, unsigned int start, unsigned i
     if(start+len>inode.i_size)
         inode.i_size=start+len;
 
-    std::cout<<inode.i_size<<" "<<start<<" "<<len<<'\n';
+    //std::cout<<inode.i_size<<" "<<start<<" "<<len<<'\n';
     return len;
     
 }
@@ -1283,7 +1324,7 @@ void FileSystem::list_(int inode_no)
     {
         DirItem dir_item;
         memcpy((char*)&dir_item,buf+i*DIR_ITEMS_SIZE,DIR_ITEMS_SIZE);
-        std::cout<<dir_item.name<<' ';
+        std::cout<<std::setw(12)<<dir_item.name<<' ';
         if((i+1)%7==0)
             std::cout<<'\n';
 
@@ -1318,32 +1359,32 @@ void FileSystem::check_status(const char* file_name, short u_id, short g_id, int
     std::string file_type=(cur_dir_node.i_mode&inode_flag::DIR_FILE)?"directory":"regular file";
 
     std::cout<<"  File: "<<paths.back()<<'\n';
-    std::cout<<"  Size: "<<cur_dir_node.i_size<<std::setw(20)<<"Blocks: "<<cur_dir_node.i_size/BLOCK_SIZE<<std::setw(20)<<file_type<<'\n';
-    std::cout<<"Device: "<<"Disk 1"<<std::setw(20)<<"Inode: "<<cur_dir_node.i_number<<'\n';
+    std::cout<<"  Size: "<<std::setw(9)<<cur_dir_node.i_size<<std::setw(20)<<"Blocks: "<<cur_dir_node.i_size/BLOCK_SIZE<<std::setw(20)<<file_type<<'\n';
+    std::cout<<"Device: "<<"Disk 1   "<<std::setw(20)<<"Inode: "<<cur_dir_node.i_number<<'\n';
     std::cout<<"Access: (0777/rwxrwxrwx)  Uid: (0000/   root)   Gid: (0000/   root)\n";
 }
 
 int FileSystem::login_(std::string u_name,std::string u_password)
 {
     int return_value=-1;
-    File * ptr= open_file("etc/users.txt",0,0,0);
-    int size= ptr->f_inode->i_size;
+    int file_no= open_file("etc/users.txt",0,0,0);
+    int size= user_file_table[0].files[file_no]->f_inode->i_size;
 
     char * buf= new char[size];
-    read_(*ptr->f_inode,buf,0,size);
+    read_(*user_file_table[0].files[file_no]->f_inode,buf,0,size);
 
     std::string users_data=std::string(buf);
 
     delete [] buf;
 
-    close_file(ptr);
+    close_file(file_no);
 
     std::vector<std::string> users= split(users_data,'\n');
 
     for(auto u: users)
     {
         std::vector<std::string> detailed_info=split(u,'-');
-        std::cout<<"detailed_info size "<<detailed_info.size()<<'\n';
+        //std::cout<<"detailed_info size "<<detailed_info.size()<<'\n';
         if(detailed_info.at(0)==u_name && detailed_info.at(3)==u_password)
         {
             return_value=0;
@@ -1361,14 +1402,17 @@ void FileSystem::seekp(File * file_ptr, int offset, int base)
         file_ptr->f_offset=base+offset;
 }
 
-void FileSystem::close_file(File * ptr)
+void FileSystem::close_file(int file_no)
 {
-    if(ptr!=nullptr)
+    if(user_file_table[0].files[file_no]!=nullptr)
     {
-        if(--ptr->f_count==0)
-            delete ptr;
-    }
+        if((--user_file_table[0].files[file_no]->f_count)==0)
+        {
+            delete user_file_table[0].files[file_no];
+            user_file_table[0].files[file_no]=nullptr;
+        }
         
+    }
 }
 
 int FileSystem::get_usr_cur_dir_no()
@@ -1593,7 +1637,7 @@ int FileSystem:: move(const char *src, const char * dst, short u_id, short g_id,
             {
                 items[i]=items[src_dir_node.i_size/DIR_ITEMS_SIZE -1];
                 src_dir_node.i_size-= DIR_ITEMS_SIZE ;
-                std::cout<<"here";
+                //std::cout<<"here";
                 if(src_dir_node.i_size%BLOCK_SIZE==0)
                 {
                     // 6 block direct index
