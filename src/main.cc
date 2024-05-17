@@ -31,6 +31,8 @@ int main()
 
 
    FileSystem fs;
+   std::cout<<" *************** WELCOME TO USE MOON-FS! ******************* \n";
+   std::cout<<"     Version 1.0   Copyright © Moondok Kaixu Chen 2024\n";
 
    fs.initialize();
 
@@ -45,7 +47,7 @@ int main()
 
     std::string command, param;
 
-    std::cout<<" ***** WELCOME TO USE MOON-FS! ***** \n";
+    
     while(true)
     {
         std::cout<<'\n';
@@ -60,7 +62,7 @@ int main()
 
         if(re==0)
         {
-            std::cout<<"login success.\n";
+            std::cout<<"login success.\n\n";
             break;
         }
 
@@ -145,8 +147,11 @@ int main()
 
             buf[len]='\0';
 
-            std::cout<<"the "<<len<<" bytes from the position "<<ptr->f_offset<<" are :\n";
-            std::cout<<buf<<'\n';
+            if(len!=num)
+                std::cout<<"the number of bytes read out is "<<len<<'\n';
+
+            //std::cout<<"the "<<len<<" bytes from the position "<<ptr->f_offset<<" are :\n";
+            //std::cout<<buf<<'\n';
 
             delete [] buf;
         }
@@ -170,8 +175,8 @@ int main()
             int len=fs.write_( *ptr->f_inode,buf, ptr->f_offset, num);
 
             ptr->f_offset+=len;
-            std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
-            std::cout<<buf<<'\n';
+            //std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
+            //std::cout<<buf<<'\n';
 
             delete [] buf;
         }
@@ -248,7 +253,7 @@ int main()
                 buf[num]='\0';
                 len=fs.read_( *ptr->f_inode,buf, ptr->f_offset, num);
                 ptr->f_offset+=len;
-                std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
+                //std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
                 std::fstream fo;
                 fo.open("disparity_test.png",std::ios::out|std::ios::binary);
                 fo.write(buf,num);
@@ -279,7 +284,7 @@ int main()
                 buf[num]='\0';
                 len=fs.read_( *ptr->f_inode,buf, ptr->f_offset, num);
                 ptr->f_offset+=len;
-                std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
+                //std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
                 std::fstream fo;
                 fo.open("report_test.pdf",std::ios::out|std::ios::binary);
                 fo.write(buf,num);
@@ -311,7 +316,7 @@ int main()
                 buf[num]='\0';
                 len=fs.read_( *ptr->f_inode,buf, ptr->f_offset, num);
                 ptr->f_offset+=len;
-                std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
+                //std::cout<<"the "<<num<<" bytes from the position "<<ptr->f_offset<<" are :\n";
                 std::fstream fo;
                 fo.open("readme_test.txt",std::ios::out|std::ios::binary);
                 fo.write(buf,num);
@@ -346,8 +351,8 @@ int main()
             std::cin.clear();
         }
 
-        std::cout<<"empty block number is : "<<fs.superblock.s_block_free_num<<" \n";
-        std::cout<<"empty inode number is : "<<fs.superblock.s_inode_free_num<<" \n";
+        // std::cout<<"empty block number is : "<<fs.superblock.s_block_free_num<<" \n";
+        // std::cout<<"empty inode number is : "<<fs.superblock.s_inode_free_num<<" \n";
 
     }
 
